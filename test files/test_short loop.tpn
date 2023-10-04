@@ -1,0 +1,2 @@
+place "P0" init 1;
+trans "T1"~"Clean all rooms" in "P0" out "P0";

@@ -1,0 +1,148 @@
+
+/* Kommentar*/
+* {
+    margin: 0px;
+    padding: 0px;
+}
+#top{
+    width: 100%;
+    height: 65px;
+    padding: 1px;
+}
+.top_input *{
+    float: left;
+}
+body{
+    background-size: 100%;
+    height: 100vh;
+}
+.grid-container{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-gap: 0px; 
+}
+.divide1{
+    height: 85vh;
+    min-height: 300px;
+    vertical-align:top;
+    min-width: 3ßßpx;
+}
+#console_wrap { 
+    width: 100%; 
+    height: 25%; 
+    vertical-align:top;
+    display: flex;
+    flex-direction: column; 
+}
+#console_places_wrap {
+    float: left;
+    position: relative;
+    width: 30%;
+    height: 100%;
+}
+#console_trans_wrap {
+    float: left;
+    position: relative;
+    width: 70%;
+    height: 100%;
+}
+
+#console_top {
+    width: 100%;
+    height: 20px;
+}
+.console {
+    resize:none;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px;
+    border-style: solid;
+    position: absolute;
+    overflow: auto
+}
+#console_go, #console_save{
+    float: right;
+}
+#labelsAndPropsWrap1 { 
+    min-width: 30vw;
+    height: 25%; 
+    vertical-align:top;
+    display: flex;
+    flex-direction: column; 
+}
+#labelsAndPropsWrap2 {
+    float: left;
+    position: relative;
+    width: 50%;
+    height: 100%;
+}
+#markingTableWrap{
+    overflow: auto;
+    width: 100%; 
+    height: 75%;
+    padding: 10px;
+    vertical-align:top;
+    border-color: black;
+    border: 1px;
+    border-style: solid;
+    box-sizing: border-box;
+}
+#markingTableWrap td {
+    height: 20px;
+    min-width: 35px;
+    border: 1px;
+    padding: 1px;
+    border-style: solid;
+    text-align: center;
+}
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 17px;
+  }
+  
+  /* Hide default HTML checkbox */
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  /* The slider */
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #000;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 13px;
+    width: 13px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+  }
+  
+  input:checked + .slider {
+    background-color: #000;
+  }
+  
+  input:checked + .slider:before {
+    -webkit-transform: translateX(13px);
+    -ms-transform: translateX(13px);
+    transform: translateX(13px);
+  }

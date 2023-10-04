@@ -1,0 +1,7 @@
+place "P0" init 1;
+place "P1";
+place "P2";
+place "P3" init 1;
+trans "T1"~"Clean all rooms" in "P0", "P3" out "P1", "P3";
+trans "T2"~"Clean all rooms" in "P0", "P1" out "P2";
+trans "T3"~"Receive 2 plates" in "P1" out "P2";
