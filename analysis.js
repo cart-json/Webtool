@@ -277,11 +277,7 @@ export class Analysis {
                     let newMarking = this.fireTransition(transition, currentMarking);
     
                     let knownMarking = explored.find(m => m.every((value, index) => value <= newMarking[index]));
-                    console.log("newMarking:")
-                    console.log(newMarking)
-                    console.log("knownMarking:")
-                    console.log(knownMarking)
-                    
+                      
                     if (knownMarking) {
                         for (let i = 0; i < knownMarking.length; i++) {
                             if (knownMarking[i] < newMarking[i]) {
