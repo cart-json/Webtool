@@ -16,7 +16,7 @@
                     <input id="fileUpload" type="file">
                     <p>EC-Net</p>
                     <label class="switch">
-                        <input type="checkbox">
+                        <input type="checkbox", id="netType">
                         <span class="slider"></span>
                     </label>
                     <p>PT-Net</p>
@@ -40,6 +40,9 @@
                         <div id="console_places_wrap">
                             <textarea class="console" id="place_console"></textarea>
                         </div>
+                        <div id="console_edges_wrap">
+                            <textarea class="console" id="edge_console"></textarea>
+                        </div>
 
                     </div>
                 </div>
@@ -53,10 +56,12 @@
                             <p class="console" id="props">Properties...</p>
                         </div>
                     </div>
-                </div>
-                <div id="markingTableWrap">
-                    <table id="markingTable">
-                    </table>
+                </div>  
+                <div style="width: 100%; height:100%;">
+                    <div id="markingTableWrap">
+                        <div id="markingTableContainer" style="display: flex;"></div>
+                        <button id="floatingButton">Unhide all</button>
+                    </div>
                 </div>
             </div>
         </div>

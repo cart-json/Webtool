@@ -1,6 +1,9 @@
-import { getPlacesAsString, getTransAsString, parse } from "./parsing.js";
+import { parse, parseShortPNF, unparseToSPNF, unparseToPNML} from "./parsing.js";
 import { vizPetriNet } from "./visulization.js";
 import { Analysis } from "./analysis.js"
+import { vizMarkingTable } from "./marking-table.js"
+
+
 
 var petriNetAr = []
 
@@ -18,8 +21,10 @@ document.getElementById("fileUpload").addEventListener("change", function() {
         }
         reader.readAsText(file, "UTF-8");
         reader.addEventListener('load', () => {
-            analyzeInput(reader.result, filetype);
-            if(filetype === "tpn") loadConsole(reader.result)
+            var petriNetAr = parse(reader.result, filetype);
+            loadConsole(petriNetAr.places, petriNetAr.trans)
+            analyzeInput(petriNetAr);
+            //if(filetype === "tpn") loadConsole(reader.result)
         })
     } else {
         alert("please upload file");
@@ -30,42 +35,55 @@ document.getElementById("console_go").onclick = function(){
 
     var place = document.getElementById("place_console").value;
     var trans = document.getElementById("transition_console").value;
-    analyzeInput(place+ "\n" + trans, "tpn")
+    var edges = document.getElementById("edge_console").value;
+    var petriNetAr = parseShortPNF(trans, place, edges);
+    analyzeInput(petriNetAr)
 
 }
 
 document.getElementById("console_save").onclick = function(){
 
-    let place = document.getElementById("place_console").value;
-    let trans = document.getElementById("transition_console").value;
-    const content = place+ "\n" + trans;
+    var place = document.getElementById("place_console").value;
+    var trans = document.getElementById("transition_console").value;
+    var edges = document.getElementById("edge_console").value;
+    var petriNetAr = parseShortPNF(trans, place, edges);
+
+    const content = unparseToPNML(petriNetAr.trans, petriNetAr.places)
 
     const blob = new Blob([content], { type: 'text/plain' });
   
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'PNEd.tpn'; 
+    a.download = 'PNEd.pnml'; 
     a.click();
 }
 
-function analyzeInput(input, filetype){
-    var petriNetAr = parse(input, filetype);
-    var places = petriNetAr.filter(item => item.type === "place");
-    var transitions = petriNetAr.filter(item => item.type === "trans");
-    var analysis = new Analysis(places, transitions, true)
+function analyzeInput(petriNetAr){
+    var netType = document.getElementById('netType').checked;
+    if(netType != petriNetAr.weights){
+        switchToPTNet();
+        netType = true;
+    }
+    var netType = document.getElementById('netType').checked;
+    var places = petriNetAr.places;
+    var transitions = petriNetAr.trans;
+    var analysis = new Analysis(places, transitions, netType)
+
     var anaResult = analysis.analyse()
     var markings = anaResult.markings
 
-    loadConsole(input)
-    vizMarkingTable(markings, places, transitions)
-    vizPetriNet(petriNetAr);
+    unparseToSPNF(places, transitions)
+    vizMarkingTable(markings, places, transitions, anaResult.liveness, anaResult.loops)
+    vizPetriNet(places.concat(transitions));
     vizTransitionLabels(transitions);
     vizProperties(anaResult.deadlocks, anaResult.boundedness, anaResult.soundness, anaResult.strSoundness)
 }
-//doesnt work for .pnml
-function loadConsole(input){
-    document.getElementById("transition_console").value = getTransAsString(input)
-    document.getElementById("place_console").value = getPlacesAsString(input)
+
+function loadConsole(places, transitions){
+    let netSPNF = unparseToSPNF(places, transitions)
+    document.getElementById("transition_console").value = netSPNF.transSPNF
+    document.getElementById("place_console").value = netSPNF.placesSPNF
+    document.getElementById("edge_console").value = netSPNF.edgeSPNF
 }
 function vizTransitionLabels(transitions){
     let labels = document.getElementById("labels");
@@ -92,66 +110,7 @@ function vizProperties(deadlockList, boundedness, soundness, strSoundness){
 
 }
 
-function vizMarkingTable(markings, places, transitions){
-    //document.getElementById("markingTable").appendChild(svg);
-    document.getElementById("markingTable").innerHTML = "";
-
-    const tblBody = document.createElement("tbody");
-
-    const firstRow = document.createElement("tr")
-
-    const firstCell = document.createElement("td")
-    firstRow.appendChild(firstCell)
-    places.forEach(place => {
-        firstRow.appendChild(createTextCell(place.id))
-    })
-    transitions.forEach(trans => {
-        firstRow.appendChild(createTextCell(trans.id))
-    })
-    for(let i = 0; i < 7-places.length-transitions.length;i++){
-        firstRow.appendChild(createEmptyCell())
-    }
-    tblBody.appendChild(firstRow)
-    markings.forEach(marking => {
-        const row = document.createElement("tr")
-        row.appendChild(createTextCell(marking.id))
-        marking.markingArr.forEach(placeMark => row.appendChild(createTextCell(placeMark)))
-        transitions.forEach(trans1 =>{
-            let cell = createTextCell("")
-            marking.nextMarks.forEach((follMarking, trans2) => {
-                if(trans1.id === trans2.id) {cell = createTextCell(follMarking.id)}
-            })
-            row.appendChild(cell)
-        })
-        for(let i = 0; i < (7-places.length-transitions.length);i++){
-            row.appendChild(createEmptyCell())
-        }
-
-        tblBody.appendChild(row)
-    })
-    for(let j = 0; j < 7-markings.length;j++){
-        const row = document.createElement("tr")
-        for(let i = 0; i < places.length+transitions.length+1;i++){
-            row.appendChild(createEmptyCell())
-        }
-        for(let i = 0; i < 7-places.length-transitions.length;i++){
-            row.appendChild(createEmptyCell())
-        }
-        tblBody.appendChild(row)
-    }
-
-    document.getElementById("markingTable").appendChild(tblBody);
-}
-
-function createTextCell(text){
-    const cell = document.createElement("td")
-    const cellText = document.createTextNode(text)
-    cell.appendChild(cellText)
-    return cell
-}
-
-function createEmptyCell(){
-    const cell = document.createElement("td")
-    cell.style.borderColor='gray';
-    return cell
+function switchToPTNet(){
+    var checkbox = document.getElementById("netType");
+    checkbox.checked = true;
 }

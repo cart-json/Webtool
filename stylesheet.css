@@ -17,15 +17,18 @@ body{
     height: 100vh;
 }
 .grid-container{
-    display: grid;
+
+    display: flex; 
     grid-template-columns: 1fr auto;
     grid-gap: 0px; 
 }
 .divide1{
+    flex: 1;
     height: 85vh;
     min-height: 300px;
     vertical-align:top;
-    min-width: 3ßßpx;
+    min-width: 300px;
+    width: 50%;
 }
 #console_wrap { 
     width: 100%; 
@@ -43,7 +46,13 @@ body{
 #console_trans_wrap {
     float: left;
     position: relative;
-    width: 70%;
+    width: 40%;
+    height: 100%;
+}
+#console_edges_wrap{
+    float: left;
+    position: relative;
+    width: 30%;
     height: 100%;
 }
 
@@ -76,9 +85,12 @@ body{
     position: relative;
     width: 50%;
     height: 100%;
+    font-size: 13px;
 }
 #markingTableWrap{
     overflow: auto;
+    display: flex;
+    align-items: start;
     width: 100%; 
     height: 75%;
     padding: 10px;
@@ -87,37 +99,51 @@ body{
     border: 1px;
     border-style: solid;
     box-sizing: border-box;
+    border-spacing: 0;  /* Removes spacing between table cells */
+    border-collapse: collapse; /* Ensures there's no extra space */
+}
+
+#markingTableWrap > div {
+    display: flex;
+    align-items: start;
+    height: 100%; 
 }
 #markingTableWrap td {
     height: 20px;
-    min-width: 35px;
+    width: 30px;
     border: 1px;
-    padding: 1px;
-    border-style: solid;
     text-align: center;
+    border-style: solid;
 }
-table {
-    border-spacing: 0;
-    border-collapse: collapse;
+#markingTableWrap table{
+    position: relative;
+    table-layout: fixed;
+    border: none; /* Removes border */
+    margin: 0;    /* Removes any outside spacing */
+    padding: 0;   /* Removes any inside spacing */
 }
-
+table div{
+    height: 20px;
+    width: 30px;
+    font-size: 13px;
+}
 
 .switch {
     position: relative;
     display: inline-block;
     width: 30px;
     height: 17px;
-  }
-  
-  /* Hide default HTML checkbox */
-  .switch input {
+}
+
+/* Hide default HTML checkbox */
+.switch input {
     opacity: 0;
     width: 0;
     height: 0;
-  }
-  
-  /* The slider */
-  .slider {
+}
+
+/* The slider */
+.slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -125,9 +151,9 @@ table {
     right: 0;
     bottom: 0;
     background-color: #000;
-  }
-  
-  .slider:before {
+}
+
+.slider:before {
     position: absolute;
     content: "";
     height: 13px;
@@ -135,14 +161,32 @@ table {
     left: 2px;
     bottom: 2px;
     background-color: white;
-  }
-  
-  input:checked + .slider {
+}
+
+input:checked + .slider {
     background-color: #000;
-  }
-  
-  input:checked + .slider:before {
+}
+
+input:checked + .slider:before {
     -webkit-transform: translateX(13px);
     -ms-transform: translateX(13px);
     transform: translateX(13px);
-  }
+}
+.locked div{
+    background-color: lightgray !important;
+    color: lightgray;
+    pointer-events: none;
+}
+.locked p{
+    visibility: hidden;
+}
+.hidden div{
+    background-color: lightblue;
+    color: lightgray;
+}
+.hidden p{
+    visibility: hidden;
+}
+#floatingButton{
+    position: absolute;
+}

@@ -1,129 +1,229 @@
 export class Analysis {
-    constructor(places, transitions,type){
+    constructor(places, transitions,netType){
         this.places = places;
         this.transitions = transitions;
-        this.type = type;
+        this.netType = netType;
+        this.coverabilityGraph = this.coverabilityAna(places,transitions)
+        this.loops = [];
     }
     analyse(){
-        this.analyseCoverability(this.places,this.transitions)
-        let markings = this.type ? this.reachabilityAnaPT(this.places, this.transitions) : this.reachabilityAnaEC(this.places, this.transitions)
-        let liveness = this.type ? this.analyseLivenessPT() : this.analyseLivenessEC()
+        let markings = this.reachabilityAna(this.places,this.transitions)
+        this.analyseLoops(markings)
         return {markings: markings,
             deadlocks: this.deadlocks(markings),
             boundedness: this.analyzeBoundedness(markings),
             soundness: this.analyzeSoundness(this.places,this.transitions),
-            strSoundness: this.analyzeStrSoundness([...this.places, ...this.transitions])}
+            strSoundness: this.analyzeStrSoundness([...this.places, ...this.transitions]),
+            liveness: this.analyseLiveness(this.transitions, markings),
+            loops: this.loops}
     }
 
-    
-
-    reachabilityAnaPT(places, transitions){
-
-        var markings = []
-        var markingQueue = []
-
-        var initialMarkingArr = []
-        for(var n = 0; n < places.length; n++){
-            initialMarkingArr[n] = places[n].init;
-        };
-        var initialMarking = {id: "M0", markingArr:initialMarkingArr, nextMarks:new Map(), previous:[]}
-        markingQueue.push(initialMarking)
+    reachabilityAna(places, transitions){
+        let markings = []
+        let toExplore = []
+        let initialMarking = this.setupInitialMarking(places)
+        toExplore.push(initialMarking)
         markings[0] = initialMarking
-
-        var counter = 1
-
-        while(markingQueue.length > 0){
-            var marking = markingQueue.shift();
-            
-            for(var n = 0; n < places.length; n++){
-                places[n].init = marking.markingArr[n];
-            };
-            
-            var nextMarks = transitions.filter(trans => (trans.incoming.reduce((active, place)=>active && place.init != 0,true)))
-            nextMarks.forEach(trans => {
-                trans.incoming.forEach(place => place.init-=1)
-                trans.outgoing.forEach(place => place.init++)
-                var newMarkingArr = []
-                for(var n = 0; n < places.length; n++){
-                    newMarkingArr[n] = places[n].init;
-                };
-                var existMarking = markings.filter(marking => marking.markingArr.every((elem, index) => elem === newMarkingArr[index]))
-                if(existMarking.length > 0){
-                    marking.nextMarks.set(trans,existMarking[0])
-                    existMarking[0].previous.push(marking)
+        let counter = 1;
+        let depth = this.coverabilityGraph.length;
+        while(toExplore.length > 0 && (counter < depth || !this.netType)){
+            let currentMarking = toExplore.shift();
+            this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
+                let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
+                let knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                if(knownEqualMarking){
+                    currentMarking.nextMarks.set(trans,knownEqualMarking)
+                    knownEqualMarking.previous.push(currentMarking)
                 } else {
-                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[marking]}
-                    marking.nextMarks.set(trans,newMarking)
-                    markingQueue.push(newMarking)
+                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                    currentMarking.nextMarks.set(trans,newMarking)
+                    toExplore.push(newMarking)
                     markings[counter] = newMarking
                     counter++;
                 }
-                for(var n = 0; n < places.length; n++){
-                    places[n].init = marking.markingArr[n];
-                };
             })
-            if(counter > 100) break;
         }
-        for(var n = 0; n < places.length; n++){
-            places[n].init = marking.markingArr[n];
-        };
-        return markings;
-    }
-
-    
-
-    reachabilityAnaEC(places, transitions){
-
-        var markings = []
-        var markingQueue = []
-
-        var initialMarkingArr = []
-        for(var n = 0; n < places.length; n++){
-            initialMarkingArr[n] = places[n].init;
-        };
-        var initialMarking = {id: "M0", markingArr:initialMarkingArr, nextMarks:new Map(), previous:[]}
-        markingQueue.push(initialMarking)
-        markings[0] = initialMarking
-
-        var counter = 1
-
-        while(markingQueue.length > 0){
-            var marking = markingQueue.shift();
-            
-            for(var n = 0; n < places.length; n++){
-                places[n].init = marking.markingArr[n];
-            };
-            
-            var nextMarks = transitions.filter(trans => (trans.incoming
-                .reduce((active, place)=>active && place.init != 0,true) && trans.outgoing
-                .reduce((active,place)=> active && (place.init == 0 || place.outgoing.includes(trans)), true)))
-            nextMarks.forEach(trans => {
-                trans.incoming.forEach(place => place.init-=1)
-                trans.outgoing.forEach(place => place.init++)
-                var newMarkingArr = []
-                for(var n = 0; n < places.length; n++){
-                    newMarkingArr[n] = places[n].init;
-                };
-                var existMarking = markings.filter(marking => marking.markingArr.every((elem, index) => elem === newMarkingArr[index]))
-                if(existMarking.length > 0){
-                    marking.nextMarks.set(trans,existMarking[0])
-                    existMarking[0].previous.push(marking)
+        while(toExplore.length > 0 && this.netType){
+            let currentMarking = toExplore.shift();
+            this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
+                let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
+                let knownCoverMarking = this.findKnownCoverMarking(newMarkingArr, currentMarking)
+                let knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                if(knownCoverMarking){
+                    for (let i = 0; i < knownCoverMarking.markingArr.length; i++) {
+                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i]) {
+                            newMarkingArr[i] = Infinity;
+                        }
+                    }
+                    knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                    if(knownEqualMarking){
+                        currentMarking.nextMarks.set(trans,knownEqualMarking)
+                        knownEqualMarking.previous.push(currentMarking)
+                    } else {
+                        var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                        currentMarking.nextMarks.set(trans,newMarking)
+                        toExplore.push(newMarking)
+                        markings[counter] = newMarking
+                        counter++;
+                    }
+                } else if(knownEqualMarking){
+                    currentMarking.nextMarks.set(trans,knownEqualMarking)
+                    knownEqualMarking.previous.push(currentMarking)
                 } else {
-                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[marking]}
-                    marking.nextMarks.set(trans,newMarking)
-                    markingQueue.push(newMarking)
+                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                    currentMarking.nextMarks.set(trans,newMarking)
+                    toExplore.push(newMarking)
                     markings[counter] = newMarking
                     counter++;
                 }
-                for(var n = 0; n < places.length; n++){
-                    places[n].init = marking.markingArr[n];
-                };
+            })
+
+        }
+        return markings;
+    }
+
+    findKnownCoverMarking(newMarkingArr, currentMarking){
+        let explored = new Set();
+        let toExplore = [currentMarking];
+        while(toExplore.length > 0){
+            let marking = toExplore.pop();
+            if(explored.has(marking)){
+                continue;
+            }
+            explored.add(marking)
+            let markCoversNew = newMarkingArr.every((placeTokens,index) => placeTokens >= marking.markingArr[index])
+            
+            if(markCoversNew){
+                return marking;
+            }
+            marking.previous.forEach(prevMark => toExplore.push(prevMark))
+        }
+        return null;
+    }
+    
+
+    reachabilityAna2(places, transitions){
+        let markings = []
+        let toExplore = []
+        let initialMarking = this.setupInitialMarking(places)
+        toExplore.push(initialMarking)
+        markings[0] = initialMarking
+        let counter = 1;
+        let depth = this.coverabilityGraph.length;
+        while(toExplore.length > 0){
+            let currentMarking = toExplore.shift();
+            this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
+                let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
+                let knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                if(knownEqualMarking){
+                    currentMarking.nextMarks.set(trans,knownEqualMarking)
+                    knownEqualMarking.previous.push(currentMarking)
+                } else if(counter > depth){
+                    let knownCoverMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem <= newMarkingArr[index]))
+                    if(knownCoverMarking){
+                        for (let i = 0; i < knownCoverMarking.markingArr.length; i++) {
+                            if (knownCoverMarking.markingArr[i] < newMarkingArr[i]) {
+                                newMarkingArr[i] = Infinity;
+                            }
+                        }
+                    }
+                    knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                    if(knownEqualMarking){
+                        currentMarking.nextMarks.set(trans,knownEqualMarking)
+                        knownEqualMarking.previous.push(currentMarking)
+                    } else {
+                        var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                        currentMarking.nextMarks.set(trans,newMarking)
+                        toExplore.push(newMarking)
+                        markings[counter] = newMarking
+                        counter++;
+                    }
+                }  else {
+                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                    currentMarking.nextMarks.set(trans,newMarking)
+                    toExplore.push(newMarking)
+                    markings[counter] = newMarking
+                    counter++;
+                }
             })
         }
-        for(var n = 0; n < places.length; n++){
-            places[n].init = marking.markingArr[n];
-        };
         return markings;
+    }
+    
+    coverabilityAna(places, transitions){
+        let markings = []
+        let toExplore = []
+        let initialMarking = this.setupInitialMarking(places)
+        toExplore.push(initialMarking)
+        markings[0] = initialMarking
+        let counter = 1;
+        while(toExplore.length > 0){
+            let currentMarking = toExplore.shift();
+            this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
+                let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
+                let knownCoverMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem <= newMarkingArr[index]))
+                if(knownCoverMarking){
+                    for (let i = 0; i < knownCoverMarking.markingArr.length; i++) {
+                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i]) {
+                            newMarkingArr[i] = Infinity;
+                        }
+                    }
+                }
+                let knownEqualMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem == newMarkingArr[index]))
+                if(knownEqualMarking){
+                    currentMarking.nextMarks.set(trans,knownEqualMarking)
+                    knownEqualMarking.previous.push(currentMarking)
+                } else {
+                    var newMarking = {id: "M" + counter, markingArr:newMarkingArr, nextMarks:new Map(), index: counter, previous:[currentMarking]}
+                    currentMarking.nextMarks.set(trans,newMarking)
+                    toExplore.push(newMarking)
+                    markings[counter] = newMarking
+                    counter++;
+                }
+            })
+        }
+        return markings;
+    }
+
+    setupInitialMarking(places){
+        let initialMarkingArr = []
+        for(let n = 0; n < places.length; n++){
+            initialMarkingArr[n] = places[n].init;
+        };
+        return {id: "M0", markingArr:initialMarkingArr, nextMarks:new Map(), previous:[], index: 0}
+
+    }
+
+    //returning all active transition for a specific marking
+    getActiveTransitions(transitions,markingArr){
+        let result;
+        if(this.netType){
+            //in a PT net: all incoming places have to have more tokens than the edge weight
+            result = transitions.filter(trans => 
+                (trans.incoming.reduce((active, place)=>
+                    active && markingArr[place.index] >= trans.incomingWeights.get(place),true)))
+                
+        } else {
+            //in an EC net: all incoming places have a token, no outgoing places (that are not incoming) have a token
+            result = transitions.filter(trans => (trans.incoming
+                .reduce((active, place)=>active && markingArr[place.index] != 0,true) && trans.outgoing
+                .reduce((active,place)=> active && (markingArr[place.index] == 0 || place.outgoing.includes(trans)), true)))
+        }
+        return result 
+    }
+    //transition is fired: remove tokens from the incoming places and put tokens on the outgoing place,
+        //according to the edge weight
+    fireTransition(transition, markingArr) {
+        let newMarking = markingArr.slice();
+    
+        for (let place of transition.incoming) {
+            newMarking[place.index]=newMarking[place.index]-transition.incomingWeights.get(place);
+        }
+        for (let place of transition.outgoing) {
+            newMarking[place.index]=newMarking[place.index]+transition.outgoingWeights.get(place);
+        }
+    
+        return newMarking;
     }
 
     deadlocks(markings){
@@ -163,7 +263,7 @@ export class Analysis {
         //2. reachability analysis with inital marking
         places.forEach(place => place.init = 0);
         initPlace.init = 1;
-        let markings = this.type ? this.reachabilityAnaPT(places,transitions) : this.reachabilityAnaEC(places,transitions);
+        let markings = this.reachabilityAna(places,transitions);
 
         //find inital and final marking
         let deadlockList = this.deadlocks(markings)
@@ -260,91 +360,82 @@ export class Analysis {
         }
         return initFoll.length == finalPrev.length && [...initFoll].every(node => finalPrev.has(node));
     }
+    
 
-    analyseCoverability(places, transitions){
-        let init = places[0].init
-        console.log(init)
+    analyseLiveness(transitions, markings){
+        return transitions.map(trans => this.analyseTransLiveness(trans,markings));
+    }
 
-        let initialMarkingArr = places.map(item => item.init);
-        let explored = [initialMarkingArr];
-        let toExplore = [initialMarkingArr];
-    
-        while (toExplore.length > 0) {
-            let currentMarking = toExplore.pop();
-    
-            for (let transition of transitions) {
-                if (this.canFire(transition, currentMarking)) {
-                    let newMarking = this.fireTransition(transition, currentMarking);
-    
-                    let knownMarking = explored.find(m => m.every((value, index) => value <= newMarking[index]));
-                      
-                    if (knownMarking) {
-                        for (let i = 0; i < knownMarking.length; i++) {
-                            if (knownMarking[i] < newMarking[i]) {
-                                newMarking[i] = Infinity;
-                            }
-                        }
-                    } if (!toExplore.some(m => m.every((value, index) => value === newMarking[index])) &&
-                                !explored.some(m => m.every((value, index) => value === newMarking[index]))) {
-                        toExplore.push(newMarking);
-                        explored.push(newMarking);
-                    }
+    analyseTransLiveness(trans, markings){
+        //L0: T never fires
+        let activatingMarks = markings.filter(mark => mark.nextMarks.get(trans) != null)
+        if(activatingMarks.length == 0){
+            return 0;
+        } else {
+            //L4: for all M there is a path t1,...,tn, so that M--t1,...,tn-->M' with M'' activating T
+            let marksLeadingToTrans = this.getMarksLeadingToTrans(trans, activatingMarks);
+            if (this.deadlocks(markings).length == 0 && marksLeadingToTrans.size == markings.length ){
+                return 4;
+            //L3 for all M activating T with M--T-->M', there is a path t1,...,tn, so that M'--t1,...,tn-->M'' and M'' activates T
+            } else if(activatingMarks.reduce((prev,mark) => marksLeadingToTrans.has(mark.nextMarks.get(trans)) && prev, true)){
+                return 3;
+            //L2: there is a marking M with M--T-->M
+            }else if(activatingMarks.find(mark => trans.incoming.filter(place => !trans.outgoing.includes(place))
+                .reduce((prev, place) => mark.markingArr[place.index] == Infinity && prev, true))){
+                return 2;
+            } else {
+            //L1: there is an M with M--T-->M' with no path t1,...,tn, so that M'--t1,...,tn-->M'' with M'' activating T
+            //or if none of the other cases is correct
+                return 1;
+            }
+        }
+
+    }
+    getMarksLeadingToTrans(trans, activatingMarks){
+        let visited = new Set();
+        let toVisit = activatingMarks.slice();
+        while(toVisit.length != 0){
+            let curMark = toVisit.pop();
+            visited.add(curMark);
+            curMark.previous.forEach(prevMark => {
+                if(!visited.has(prevMark) && !toVisit.includes(prevMark)){
+                    toVisit.push(prevMark);
                 }
+            })
+        }
+        return visited;
+    }
+
+    loopExists(newLoop){
+        for(let loop of this.loops){
+            if(loop[0].index == newLoop[0].index && loop[1].index == newLoop[1].index) return true;
+        }
+        return false;
+    }
+
+    checkForLoops(marking, explored) {
+    
+    
+        if (marking.nextMarks.size === 0) {
+            return;
+        }
+    
+        for (let nextMarking of marking.nextMarks.values()) {
+            if (explored.includes(nextMarking.id)) {
+                let newLoop = [marking, nextMarking]
+                //console.log(!this.loopExists(newLoop))
+                if(!this.loopExists(newLoop)){
+                    this.loops.push(newLoop);
+                }
+            } else {
+                this.checkForLoops(nextMarking, [...explored, marking.id]);
             }
         }
-        console.log(explored)
-        return explored;
-
-    }
-    canFire(transition, markingArr) {
-        for (let place of transition.incoming) {
-            if (markingArr[place.index] < 1) return false;
-        }
-        return true;
-    }
-    fireTransition(transition, markingArr) {
-        let newMarking = markingArr.slice();
-    
-        for (let place of transition.incoming) {
-            newMarking[place.index]--;
-        }
-        for (let place of transition.outgoing) {
-            newMarking[place.index]++;
-        }
-    
-        return newMarking;
-    }
-
-    covers(coveringMark, comparingMark){
-        let result = false;
-        for(let i = 0; i < coveringMark.length; i++){
-            if(coveringMark[i]<comparingMark[i]){
-                return false;
-            } else if(coveringMark[i]>comparingMark[i]){
-                result = true;
-            }
-        }
-        return result;
     }
     
-
-    analyseLivenessPT(transitions, markings){
-
-    //for each trans:
-        //find all markings activating T
-        //if there are none --> L0
-        //check for each marking if there is a following marking activating T
-        return null;
-
-    }
-
-    analyseLivenessEC(transitions, markings){
-
-    //for each trans:
-        //find all markings activating T
-        //if there are none --> L0
-        //check for each marking if there is a following marking activating T
-        return null;
-
+    analyseLoops(markings) {
+        let initialMarking = markings[0];
+    
+        this.checkForLoops(initialMarking, []);
     }
 }
