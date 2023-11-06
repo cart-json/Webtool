@@ -14,6 +14,8 @@ export function vizPetriNet(petriNetAr) {
         addedElems.add(petriNetAr[0])
     }
     var index = 0
+    let graph = []
+    layers[0].forEach(elem => graph.push(elem))
     while (true) {
         layers[index + 1] = []
         layers[index].forEach(elem => {

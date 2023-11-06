@@ -187,6 +187,13 @@ input:checked + .slider:before {
 .hidden p{
     visibility: hidden;
 }
-#floatingButton{
+#unhideButton{
     position: absolute;
+    z-index: 2;
+}
+.pointer:hover {
+    cursor: pointer;
+}
+.highlightedRow{
+    background-color: red;
 }

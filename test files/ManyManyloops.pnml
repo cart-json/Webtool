@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <pnml>
+        <net id="net1" type="http://www.pnml.org/version-2009/grammar/pnmlcoremodel">
+    
+            <place id="P0">
+                <name>
+                    <text>P0</text>
+                </name>
+                <initialMarking>
+                    <text>1</text>
+                </initialMarking>
+            </place>
+        
+            <place id="P1">
+                <name>
+                    <text>P1</text>
+                </name>
+                <initialMarking>
+                    <text>1</text>
+                </initialMarking>
+            </place>
+        
+            <place id="P2">
+                <name>
+                    <text>P2</text>
+                </name>
+                <initialMarking>
+                    <text>0</text>
+                </initialMarking>
+            </place>
+        
+            <place id="P3">
+                <name>
+                    <text>P3</text>
+                </name>
+                <initialMarking>
+                    <text>0</text>
+                </initialMarking>
+            </place>
+        
+            <transition id="T1">
+                <name>
+                    <text> receive Email</text>
+                </name>
+            </transition>
+        
+            <transition id="T2">
+                <name>
+                    <text> answer Email</text>
+                </name>
+            </transition>
+        
+            <transition id="T3">
+                <name>
+                    <text> T3</text>
+                </name>
+            </transition>
+        
+            <transition id="T5">
+                <name>
+                    <text>T5</text>
+                </name>
+            </transition>
+        
+            <transition id="T6">
+                <name>
+                    <text>T6</text>
+                </name>
+            </transition>
+        
+            <transition id="T4">
+                <name>
+                    <text>T4</text>
+                </name>
+            </transition>
+        
+                <arc id="a_T1_P1" source="T1" target="P1">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P0_T1" source="P0" target="T1">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_T2_P2" source="T2" target="P2">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P1_T2" source="P1" target="T2">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_T3_P0" source="T3" target="P0">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P1_T3" source="P1" target="T3">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_T5_P0" source="T5" target="P0">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P0_T5" source="P0" target="T5">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_T6_P2" source="T6" target="P2">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P3_T6" source="P3" target="T6">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_T4_P3" source="T4" target="P3">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_P2_T4" source="P2" target="T4">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+        </net>
+    </pnml>
+    

@@ -105,7 +105,7 @@ function parsePNML(pnmlString) {
     const placeElements = xmlDoc.getElementsByTagName('place');
     for (let place of placeElements) {
         const id = place.getAttribute('id');
-        const initialMarking = M3getText(place, 'initialMarking') || '0'; // Assumes missing initialMarking means 0
+        const initialMarking = getText(place, 'initialMarking') || '0'; // Assumes missing initialMarking means 0
         petriNet.places.push(new Place(id, parseInt(initialMarking, 10), placeCounter));
         placeCounter++;
     }
@@ -336,7 +336,6 @@ function unparseToTPN(places, transitions) {
     let transResult = '';
     let edgeResult = '';
 
-    // Process places
     places.forEach(place => {
         let placeStr = `place "${place.id}"`;
         if (place.init > 0) {
@@ -346,11 +345,9 @@ function unparseToTPN(places, transitions) {
         placeResult += placeStr;
     })
 
-    // Process transitions and build edge information
     for (const trans of transitions) {
         let transStr = `trans "${trans.id}"~"${trans.label.trim()}"`;
 
-        // Handle incoming edges
         let incomingEdges = [];
         if (trans.incoming && trans.incoming.length > 0) {
             for (const place of trans.incoming) {
@@ -362,12 +359,10 @@ function unparseToTPN(places, transitions) {
             }
         }
 
-        // Attach the incoming places to the transition
         if (incomingEdges.length > 0) {
             transStr += ` in (${incomingEdges.join(', ')})`;
         }
 
-        // Handle outgoing edges
         let outgoingEdges = [];
         if (trans.outgoing && trans.outgoing.length > 0) {
             for (const place of trans.outgoing) {
@@ -379,33 +374,28 @@ function unparseToTPN(places, transitions) {
             }
         }
 
-        // Attach the outgoing places to the transition
         if (outgoingEdges.length > 0) {
             transStr += ` out (${outgoingEdges.join(', ')})`;
         }
 
         transStr += ';\n';
-        transResult += transStr; // Add the transition string to results
+        transResult += transStr;
     }
 
-    // Return the segments in an object
     return { placesSPNF: placeResult, transSPNF: transResult, edgeSPNF: edgeResult };
 }
 
-// Usage
 const data = {
     places: [/* your places data */],
     transitions: [/* your transitions data */],
 };
 
 export function unparseToPNML(trans, places) {
-    // Start with the PNML header and start of the net
     let pnml = `<?xml version="1.0" encoding="UTF-8"?>
     <pnml>
         <net id="net1" type="http://www.pnml.org/version-2009/grammar/pnmlcoremodel">
     `;
 
-    // Add places to the PNML
     for(let place of places) {
         pnml += `
             <place id="${place.id}">
@@ -419,7 +409,6 @@ export function unparseToPNML(trans, places) {
         `;
     }
 
-    // Add transitions to the PNML
     for(let tran of trans) {
         pnml += `
             <transition id="${tran.id}">
@@ -430,7 +419,6 @@ export function unparseToPNML(trans, places) {
         `;
     }
 
-    // Add arcs to the PNML (from transitions to places and vice versa)
     for(let tran of trans) {
         for(let outPlace of tran.outgoing) {
             let weight = tran.outgoingWeights.get(outPlace);
@@ -454,7 +442,6 @@ export function unparseToPNML(trans, places) {
         }
     }
 
-    // Close the net and PNML tags
     pnml += `
         </net>
     </pnml>

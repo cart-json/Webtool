@@ -1,3 +1,5 @@
+import  {uncoverMarking} from "./Controller.js"
+
 
 
 export function vizMarkingTable(markings, places, transitions, liveness, loops){
@@ -117,6 +119,7 @@ function createTableBody(markings, places, transitions){
         }
         tblBody.appendChild(row)
     }*/
+    tblBody.id = "tblBody"
     return tblBody;
 }
 
@@ -143,25 +146,42 @@ function createInteractiveTextCell(text){
     cell.addEventListener('click', function() {
         unhide(this, text);
     });
+    cell.classList.add('pointer');
     return cell
 
 }
 
 function unhideRowById(rowId) {
     const row = document.getElementById(rowId);
-    if (row) {
+    if (row && row.classList.contains("locked")) {
         row.classList.remove("locked")
     }
 }
 
-function unhide(element, text) {
+function unhide(element, markID) {
     if (element.classList.contains('hidden')) {
         element.classList.remove('hidden');
+        let row = element.parentElement;
+        let cells = Array.from(row.cells)
+        let uncovered = cells.map(cell => cell.classList.contains('hidden')).reduce((prev, cellIsHidden) => prev && !cellIsHidden, true);
+        if(uncovered){
+            uncoverMarking(row.id)
+        }
     } else {
-        if(text != ""){
-            unhideRowById(text)
+        if(markID != ""){
+            unhideRowById(markID)
         }
     }
+}
+
+function uncoverRow(row){
+    unhideRowById(row.id);
+    for (var i = 0; i < row.cells.length; i++) {
+        let cell = row.cells[i];
+        unhide(cell, "");
+    }
+
+
 }
 
 function createEmptyCell(){
@@ -212,4 +232,30 @@ function drawArrow(startX, startY, endY, difY, svg) {
     path.style.markerEnd = 'url(#arrowhead)';
 
     svg.appendChild(path);
+}
+
+
+document.getElementById("unhideButton").onclick = function() {
+    const tblBody = document.getElementById("tblBody");
+    if(tblBody){
+        for (var i = 0; i < tblBody.rows.length; i++) {
+            let row = tblBody.rows[i];
+            uncoverRow(row);
+        }
+    }
+}
+
+export function highlightRowByID(rowId){
+    const row = document.getElementById(rowId);
+    if(!row.classList.contains("highlightedRow")){
+        row.classList.add("highlightedRow");
+    }
+}
+
+export function unhighlightRowByID(rowId){
+
+    const row = document.getElementById(rowId);
+    if(row.classList.contains("highlightedRow")){
+        row.classList.remove("highlightedRow");
+    }
 }
