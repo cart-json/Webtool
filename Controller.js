@@ -1,12 +1,12 @@
 import { parse, parseShortPNF, unparseToSPNF, unparseToPNML} from "./parsing.js";
-import { vizPetriNet } from "./visulization.js";
+import { vizPetriNet, updateTokens } from "./visulization.js";
 import { Analysis } from "./analysis.js"
 import { vizMarkingTable } from "./marking-table.js"
 import {vizProperties} from "./properties.js"
 
 
 let state = {}
-state.uncoveredMarkings = new Set()
+state.uncoveredMarkingIDs = new Set()
 
 document.getElementById("fileUpload").addEventListener("change", function() {
 
@@ -59,7 +59,9 @@ function analyzeConsoleInput(){
     let trans = document.getElementById("transition_console").value;
     let edges = document.getElementById("edge_console").value;
     let petriNetAr = parseShortPNF(trans, place, edges);
-    analyzeInput(petriNetAr)
+    if(edges !== ""){
+        analyzeInput(petriNetAr)
+    }
 
 }
 
@@ -91,6 +93,7 @@ function analyzeInput(petriNetAr){
         netType = true;
     }
     netType = document.getElementById('netType').checked;
+    state.petriNetAr = petriNetAr;
     let places = petriNetAr.places;
     let transitions = petriNetAr.trans;
     let analysis = new Analysis(places, transitions, netType)
@@ -98,20 +101,25 @@ function analyzeInput(petriNetAr){
     state.anaResult = analysis.analyse()
     let markings = state.anaResult.markings
 
-    state.uncoveredMarkings = new Set()
+    state.uncoveredMarkingIDs = new Set()
 
     unparseToSPNF(places, transitions)
-    vizProperties(state.anaResult, state.uncoveredMarkings)
-    vizMarkingTable(markings, places, transitions, state.anaResult.liveness, state.anaResult.loops)
     vizPetriNet(places.concat(transitions));
+    vizProperties(state.anaResult, state.uncoveredMarkingIDs)
+    vizMarkingTable(markings, places, transitions, state.anaResult.liveness, state.anaResult.loops)
+    
     vizTransitionLabels(transitions);
 }
 
-export function uncoverMarking(marking){
-    if(!state.uncoveredMarkings.has(marking)){
-        state.uncoveredMarkings.add(marking)
-        vizProperties(state.anaResult, state.uncoveredMarkings)
+export function uncoverMarking(markingID){
+    if(!state.uncoveredMarkingIDs.has(markingID)){
+        state.uncoveredMarkingIDs.add(markingID)
+        vizProperties(state.anaResult, state.uncoveredMarkingIDs)
     }
+}
+
+export function vizMarkingInSVGNet(marking){
+        updateTokens(state.petriNetAr.places, marking.markingArr)
 }
 
 function loadConsole(places, transitions){
@@ -125,8 +133,10 @@ function vizTransitionLabels(transitions){
     labels.innerHTML = "";
 
     transitions.forEach(trans => {
-        labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
-        labels.appendChild(document.createElement("br"))
+        if(trans.label != ""){
+            labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
+            labels.appendChild(document.createElement("br"))
+        }
     })
 
 }

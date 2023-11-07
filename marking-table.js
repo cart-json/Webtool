@@ -1,16 +1,18 @@
-import  {uncoverMarking} from "./Controller.js"
+import  {uncoverMarking, vizMarkingInSVGNet} from "./Controller.js"
 
-
+const state = {};
 
 export function vizMarkingTable(markings, places, transitions, liveness, loops){
+    state.markings = markings;
+    state.transitions = transitions;
+    state.places = places;
+    state.loops = loops;
+    state.loadedMarkingIdices = new Set();
 
     const container = document.getElementById("markingTableContainer");
     container.innerHTML = "";
 
     container.style.display = 'flex'
-
-
-
 
     const tbl = document.createElement("table");
     tbl.style.borderCollapse = 'collapse';
@@ -19,21 +21,30 @@ export function vizMarkingTable(markings, places, transitions, liveness, loops){
     const tblHead = document.createElement("thead");
 
     //creating first row (liveness)
-    tblHead.appendChild(createFirstRow(places, liveness))
+    tblHead.appendChild(createFirstRow(places, liveness)),
     //creating second row (place and transition IDs)
-    tblHead.appendChild(createSecondRow(places, transitions))
+    tblHead.appendChild(createSecondRow(places, transitions)),
 
     tbl.appendChild(tblHead);
 
     //creating table body
-    tbl.appendChild(createTableBody(markings, places, transitions));
+    tbl.appendChild(createTableBody());
 
-    //creating arrows for the loops
+    const svgWrap = document.createElement("div");
+    svgWrap.id = "loopSvgWrap";
+    svgWrap.appendChild(setupLoopSVG(loops)),
+    container.appendChild(svgWrap),
+    vizMarkingInSVGNet(markings[0])
+    container.appendChild(tbl),
+    createLoopSVG();
+
+}
+
+function setupLoopSVG(){
     const rowHeight = 21; // Height of a row
 
-    const svgWidth = 20 + 5  * loops.filter(loop => loop[0].index != loop[1].index).length
-    const svgHeight = rowHeight  * (markings.length + 2)
-
+    const svgWidth = 20 + 5  * state.loops.filter(loop => loop[0].index != loop[1].index).length
+    const svgHeight = rowHeight  * (state.markings.length + 2)
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.style.width = svgWidth + 'px'; // Adjust based on your preference
     svg.style.height = '100%';
@@ -41,9 +52,52 @@ export function vizMarkingTable(markings, places, transitions, liveness, loops){
     svg.style.zIndex = "1";
     svg.style.position = 'relative';
     svg.style.flexShrink = '0';
+    svg.id = "loopSVG"
+
+    return svg;
+
+}
+
+function createLoopSVG(){
+    const svg = document.getElementById("loopSVG");
+    while (svg.firstChild){
+        svg.removeChild(svg.firstChild)
+    }
+
+    let uncoveredLoops = state.loops.filter(loop => state.loadedMarkingIdices.has(loop[0].index) &&
+        state.loadedMarkingIdices.has(loop[1].index))
+
+    //the uncoveredLoops array is getting sorted: the shorter the loop the lower the index
+    // This will result in a better visualisation of the loops
+    // The path of the arrows for the smaller loops will be closer to the table
+    uncoveredLoops = uncoveredLoops.sort((loop1, loop2) => {
+        let lengthLoop1 = loop1[0].index - loop1[1].index;
+        let lengthLoop2 = loop2[0].index - loop2[1].index;
+
+        if(Math.abs(lengthLoop1) < Math.abs(lengthLoop2)){
+            return -1;
+        }
+        if(Math.abs(lengthLoop1) < Math.abs(lengthLoop2)){
+            return 1;
+        }
+        if(lengthLoop1 < lengthLoop2){
+            return -1;
+        }
+        if(lengthLoop1 > lengthLoop2){
+            return 1;
+        }
+        return 0;
+    });
+
+    const rowHeight = 21; // Height of a row
+    const svgWidth = parseInt(svg.style.width);
 
     var counter = 0;
-    loops.forEach((loop) => {
+    uncoveredLoops.forEach((loop) => {
+        const startRow = document.getElementById(loop[0].id);
+        let y = startRow.offsetTop;
+        const targetRow = document.getElementById(loop[1].id);
+        let y2 = targetRow.offsetTop;
         const startIndex = loop[0].index + 2
         const targetIndex = loop[1].index + 2
         var difY = 15;
@@ -52,14 +106,21 @@ export function vizMarkingTable(markings, places, transitions, liveness, loops){
             difY = difY + 5*counter;
         }
 
-        const fromY = (startIndex * rowHeight) + (rowHeight *2 / 3);
-        const toY = (targetIndex * rowHeight) + (rowHeight / 3);
+        const fromY = y + (rowHeight *2 / 3);
+        const toY = y2 + (rowHeight / 3);
 
-        drawArrow(svgWidth, fromY, toY, difY, svg); // Adjust 25 if you change the SVG width
+        //creating arrows for the loops
+        drawArrow(svgWidth, fromY, toY, difY, svg);
     });
-    container.appendChild(svg)
-    container.appendChild(tbl)
-    unhideRowById("M0")
+    return svg;
+}
+
+function updateSVG(){
+    let svgWrap = document.getElementById("loopSvgWrap");
+    let newSVG = createLoopSVG();
+    svgWrap.innerHTML = "";
+    svgWrap.appendChild(newSVG);
+
 
 }
 
@@ -89,38 +150,28 @@ function createSecondRow(places, transitions){
     return secondRow;
 }
 
-function createTableBody(markings, places, transitions){
+function createTableBody(){
     const tblBody = document.createElement("tbody");
-    markings.forEach(marking => {
-        const row = document.createElement("tr")
-        row.appendChild(createTextCell(marking.id))
-        row.id = marking.id;
-        marking.markingArr.forEach(placeMark => row.appendChild(createTextCell(placeMark == Infinity?"ω" : placeMark)))
-        transitions.forEach(trans1 =>{
-            let cell = createInteractiveTextCell("")
-            marking.nextMarks.forEach((follMarking, trans2) => {
-                if(trans1.id === trans2.id) {cell = createInteractiveTextCell(follMarking.id)}
-            })
-            row.appendChild(cell)
-        })
-        /*for(let i = 0; i < (7-places.length-transitions.length);i++){
-            row.appendChild(createEmptyCell())
-        }*/
-        row.classList.add("locked")
-        tblBody.appendChild(row)
-    })
-    /*for(let j = 0; j < 7-markings.length;j++){
-        const row = document.createElement("tr")
-        for(let i = 0; i < places.length+transitions.length+1;i++){
-            row.appendChild(createEmptyCell())
-        }
-        for(let i = 0; i < 7-places.length-transitions.length;i++){
-            row.appendChild(createEmptyCell())
-        }
-        tblBody.appendChild(row)
-    }*/
+    tblBody.appendChild(createMarkingRow(state.markings[0]))
     tblBody.id = "tblBody"
     return tblBody;
+}
+
+function createMarkingRow(marking){
+    const row = document.createElement("tr")
+    row.appendChild(createTextCell(marking.id))
+    row.id = marking.id;
+    marking.markingArr.forEach(placeMark => 
+        row.appendChild(createTextCell(placeMark == Infinity?"ω" : placeMark)))
+    state.transitions.forEach(trans1 =>{
+        let cell = createInteractiveTextCell(null)
+        marking.nextMarks.forEach((follMarking, trans2) => {
+            if(trans1.id === trans2.id) {cell = createInteractiveTextCell(follMarking)}
+        })
+        row.appendChild(cell)
+    })
+    state.loadedMarkingIdices.add(marking.index);
+    return row;
 }
 
 function createTextCell(text){
@@ -134,54 +185,78 @@ function createTextCell(text){
     return cell
 }
 
-function createHiddenTextCell(text){
-    const cell = createTextCell(text)
+function createInteractiveTextCell(marking){
+    const cell = createTextCell(marking ? marking.id : "")
     cell.classList.add('hidden');
-    return cell
-
-}
-
-function createInteractiveTextCell(text){
-    const cell = createHiddenTextCell(text)
     cell.addEventListener('click', function() {
-        unhide(this, text);
+        unhide(this, marking);
     });
     cell.classList.add('pointer');
     return cell
 
 }
 
-function unhideRowById(rowId) {
-    const row = document.getElementById(rowId);
-    if (row && row.classList.contains("locked")) {
-        row.classList.remove("locked")
-    }
-}
-
-function unhide(element, markID) {
+function unhide(element, marking) {
     if (element.classList.contains('hidden')) {
         element.classList.remove('hidden');
         let row = element.parentElement;
         let cells = Array.from(row.cells)
         let uncovered = cells.map(cell => cell.classList.contains('hidden')).reduce((prev, cellIsHidden) => prev && !cellIsHidden, true);
         if(uncovered){
-            uncoverMarking(row.id)
+            uncoverMarking(marking)
         }
     } else {
-        if(markID != ""){
-            unhideRowById(markID)
+        if(marking){
+            vizMarkingInSVGNet(marking)
+            if(!state.loadedMarkingIdices.has(marking.index)){
+                const tblBody = document.getElementById("tblBody");
+                tblBody.appendChild(createMarkingRow(marking));
+                updateSVG();
+            }
         }
     }
 }
 
-function uncoverRow(row){
-    unhideRowById(row.id);
+function unhideRow(row){
     for (var i = 0; i < row.cells.length; i++) {
         let cell = row.cells[i];
-        unhide(cell, "");
+        unhide(cell, null);
     }
+}
 
 
+document.getElementById("unhideButton").onclick = function() {
+    const tblBody = document.getElementById("tblBody");
+    if(tblBody){
+        for (var i = 0; i < tblBody.rows.length; i++) {
+            let row = tblBody.rows[i];
+            unhideRow(row);
+        }
+        for (var i = 0; i < state.markings.length; i++) {
+            if(!state.loadedMarkingIdices.has(i)){
+                const row = createMarkingRow(state.markings[i]);
+                tblBody.appendChild(row);
+                unhideRow(row);
+            }
+        }
+
+        updateSVG();
+    }
+}
+
+export function highlightRowByID(rowId){
+    const row = document.getElementById(rowId);
+    if(!row.classList.contains("highlightedRow")){
+        row.classList.add("highlightedRow");
+    }
+}
+
+export function unhighlightRowByID(rowId){
+
+    const row = document.getElementById(rowId);
+    if(row.classList.contains("highlightedRow")){
+        row.classList.remove("highlightedRow");
+    }
 }
 
 function createEmptyCell(){
@@ -232,30 +307,4 @@ function drawArrow(startX, startY, endY, difY, svg) {
     path.style.markerEnd = 'url(#arrowhead)';
 
     svg.appendChild(path);
-}
-
-
-document.getElementById("unhideButton").onclick = function() {
-    const tblBody = document.getElementById("tblBody");
-    if(tblBody){
-        for (var i = 0; i < tblBody.rows.length; i++) {
-            let row = tblBody.rows[i];
-            uncoverRow(row);
-        }
-    }
-}
-
-export function highlightRowByID(rowId){
-    const row = document.getElementById(rowId);
-    if(!row.classList.contains("highlightedRow")){
-        row.classList.add("highlightedRow");
-    }
-}
-
-export function unhighlightRowByID(rowId){
-
-    const row = document.getElementById(rowId);
-    if(row.classList.contains("highlightedRow")){
-        row.classList.remove("highlightedRow");
-    }
 }

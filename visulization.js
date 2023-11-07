@@ -1,101 +1,99 @@
+let state = {}
+
+
 export function vizPetriNet(petriNetAr) {
     if(petriNetAr.length == 0) return;
-    var layers = []
-    var addedElems = new Set()
-    layers[0] = []
+
+    let addedElems = new Set()
+    let maxWidth = 0;
+    let nodes = [];
+    let queue = [];
+    state.idNodeMap = new Map();
+    let grid = [];
+
+    function addNode(element, rowIndex){
+        if(!grid[rowIndex]){
+            grid[rowIndex] = []
+        }
+        let newNode = new Node(element, grid[rowIndex].length, rowIndex)
+        grid[rowIndex].push(newNode)
+        nodes.push(newNode)
+        state.idNodeMap.set(element.id, newNode)
+        if (grid[rowIndex].length > maxWidth){
+            maxWidth = grid[rowIndex].length;
+        }
+        return newNode;
+    }
+
     for (var n = 0; n < petriNetAr.length; n++) {
         if (petriNetAr[n].incoming.length == 0) {
-            layers[0].push(petriNetAr[n])
-            addedElems.add(petriNetAr[n])
+            queue.push(addNode(petriNetAr[n], 0));
+            addedElems.add(petriNetAr[n]);
         }
     };
-    if(layers[0].length == 0){
-        layers[0].push(petriNetAr[0])
-        addedElems.add(petriNetAr[0])
+    if(nodes.length == 0){
+        queue.push(addNode(petriNetAr[0], 0));
+        addedElems.add(petriNetAr[0]);
     }
-    var index = 0
-    let graph = []
-    layers[0].forEach(elem => graph.push(elem))
-    while (true) {
-        layers[index + 1] = []
-        layers[index].forEach(elem => {
-            elem.outgoing.forEach(out => {
-                if (!addedElems.has(out)) {
-                    layers[index + 1].push(out);
-                    addedElems.add(out);
-                    /*var follows = out.incoming.map(inc => addedElems.has(inc))
-                        .reduce(function (bool, isAdded) { return bool && isAdded }, true)
-                    if (follows) {
-                        layers[index + 1].push(out);
-                        addedElems.add(out);
-                    }*/
-                }
-            })
+    maxWidth = nodes.length;
+    while (queue.length != 0) {
+        let node = queue.shift()
+        node.element.outgoing.forEach(out => {
+            if (!addedElems.has(out)) {
+                queue.push(addNode(out, node.row + 1));
+                addedElems.add(out);
+            }
         })
-        if (layers[index + 1].length == 0) {
-            break;
-        }
-        index++;
+        node.element.incoming.forEach(inc => {
+            if (!addedElems.has(inc)) {
+                queue.push(addNode(inc, node.row + 1));
+                addedElems.add(inc);
+            }
+        })
     }
-
-
 
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    var svgNS = svg.namespaceURI;
-    const d = 70;
-    svg.setAttribute('width', 500)
-    svg.setAttribute('height', layers.length *75)
-
-    for (var i = 0; i < layers.length; i++) {
-        for (var j = 0; j < layers[i].length; j++) {
-            var element = layers[i][j];
-            if (element.type === "trans") {
-                addRect((j + 1) * d, (i + 1) * d, svg, element.id)
-            } else {
-                addPlace((j + 1) * d, (i + 1) * d, svg, element.id)
-            }
-        }
-    }
+    state.svg = svg;
+    svg.setAttribute('width', maxWidth * 70 + 50)
+    svg.setAttribute('height', grid.length *75)
+    nodes.forEach(node => node.drawNode(svg));
+    
     petriNetAr.forEach(elem => {
         elem.outgoing.forEach(follElem => {
-            connect(elem, follElem, svg)
+            connect(state.idNodeMap.get(elem.id), state.idNodeMap.get(follElem.id), svg)
         })
     })
     document.getElementById("content").innerHTML = "";
     document.getElementById("content").appendChild(svg);
 }
 
-function addLine(x1, y1, x2, y2, svgNS) {
-    var line = document.createElementNS(svgNS, 'line');
-    line.setAttribute('x1', x1);
-    line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2);
-    line.setAttribute('y2', y2);
-    line.setAttribute('fill', '#ffffff');
-    line.setAttribute('stroke', 'black');
-    line.setAttribute('stroke-width', 2);
-    return line;
-}
-
-function connect(startElem, targetElem, svg) {
-    let startNode = svg.getElementById(startElem.id);
-    let targetNode = svg.getElementById(targetElem.id);
-    if(startNode && targetNode){
-        let x = startNode.getAttribute('x')
-        if(startElem.type === "place"){
-            let x1 = parseInt(startNode.getAttribute('cx'))
-            let y1 = parseInt(startNode.getAttribute('cy'))
-            let x2 = parseInt(targetNode.getAttribute('x'))+9
-            let y2 = parseInt(targetNode.getAttribute('y'))
-            drawLine(x1, y1, x2, y2, svg)
+function connect(startNode, targetNode, svg) {
+    let startCoord;
+    let targetCoord;
+    if(startNode.row >= targetNode.row){
+        if(startNode.column == targetNode.column){
+            startCoord = startNode.getBottomConnection();
+            targetCoord = targetNode.getTopConnection();
+        } else if (startNode.column >= targetNode.column){
+            startCoord = startNode.getLeftConnection();
+            targetCoord = targetNode.getTopConnection();
         } else {
-            let x1 = parseInt(startNode.getAttribute('x')) +9
-            let y1 = parseInt(startNode.getAttribute('y')) +34
-            let x2 = parseInt(targetNode.getAttribute('cx'))
-            let y2 = parseInt(targetNode.getAttribute('cy'))
-            drawLine(x1, y1, x2, y2, svg)
+            startCoord = startNode.getRightConnection();
+            targetCoord = targetNode.getTopConnection();
+        }
+    } else {
+        if(startNode.column == targetNode.column){
+            startCoord = startNode.getTopConnection();
+            targetCoord = targetNode.getBottomConnection();
+        } else if (startNode.column >= targetNode.column){
+            startCoord = startNode.getLeftConnection();
+            targetCoord = targetNode.getBottomConnection();
+        } else {
+            startCoord = startNode.getRightConnection();
+            targetCoord = targetNode.getBottomConnection();
         }
     }
+    drawLine(startCoord.x, startCoord.y, targetCoord.x, targetCoord.y, svg)
 }
 function drawLine(x1, y1, x2, y2, svg){
     // Horizontal line
@@ -146,13 +144,13 @@ function drawLine(x1, y1, x2, y2, svg){
 }
   
 
-function addRect(x, y, svg, text) {
+function addRect(node, svg) {
     var rect = document.createElementNS(svg.namespaceURI, 'rect');
     const height = 34;
     const width = 18;
-    rect.setAttribute('id', text);
-    rect.setAttribute('x', x - (width / 2));
-    rect.setAttribute('y', y - (height / 2));
+    rect.setAttribute('id', node.element.id);
+    rect.setAttribute('x', node.xCoordinate - (width / 2));
+    rect.setAttribute('y', node.yCoordinate - (height / 2));
     rect.setAttribute('width', width);
     rect.setAttribute('height', height);
     rect.setAttribute('fill', 'black');
@@ -161,35 +159,130 @@ function addRect(x, y, svg, text) {
     svg.appendChild(rect)
 
     var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = text;
-    label.setAttribute('x', x + 20);
-    label.setAttribute('y', y - 20);
+    label.textContent = node.element.id;
+    label.setAttribute('x', node.xCoordinate + 20);
+    label.setAttribute('y', node.yCoordinate - 20);
     label.setAttribute('fill', 'black'); // Text color
     label.setAttribute('font-family', 'Arial'); // Font family for the text
     label.setAttribute('font-size', '16'); // Font size for the text
     label.setAttribute('text-anchor', 'middle');
     svg.appendChild(label)
+
+    return rect;
 }
 
 
-function addPlace(x, y, svg, text) {
+function addPlace(node, svg) {
     var circle = document.createElementNS(svg.namespaceURI, 'circle');
-    circle.setAttribute('id', text);
+    circle.setAttribute('id', node.element.id);
     circle.setAttribute('r', 8);
-    circle.setAttribute('cx', x);
-    circle.setAttribute('cy', y);
+    circle.setAttribute('cx', node.xCoordinate);
+    circle.setAttribute('cy', node.yCoordinate);
     circle.setAttribute('fill', '#ffffff');
     circle.setAttribute('stroke', 'black');
     circle.setAttribute('stroke-width', 2);
     svg.appendChild(circle)
 
     var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = text;
-    label.setAttribute('x', x + 20);
-    label.setAttribute('y', y - 10);
+    label.textContent = node.element.id;
+    label.setAttribute('x', node.xCoordinate + 20);
+    label.setAttribute('y', node.yCoordinate - 10);
     label.setAttribute('fill', 'black'); // Text color
     label.setAttribute('font-family', 'Arial'); // Font family for the text
     label.setAttribute('font-size', '16'); // Font size for the text
     label.setAttribute('text-anchor', 'middle');
     svg.appendChild(label)
+    return circle;
+}
+
+class Node{
+    constructor(element, column, row){
+        const distance = 70;
+        this.element = element;
+        this.column = column;
+        this.row = row;
+        this.isPlace = element.type === "place";
+        this.xCoordinate = (column + 1) * distance;
+        this.yCoordinate = (row + 1) * distance;
+    }
+
+    drawNode(svg){
+        this.vizNode = this.isPlace ? addPlace(this, svg) : addRect(this, svg)
+    }
+
+    getBottomConnection(){
+        let x, y;
+        if(this.isPlace){
+            x = parseInt(this.vizNode.getAttribute('cx'));
+            y = parseInt(this.vizNode.getAttribute('cy')) - 8;
+        } else {
+            x = parseInt(this.vizNode.getAttribute('x')) +9
+            y = parseInt(this.vizNode.getAttribute('y'))
+        }
+        return {x: x, y: y};
+    }
+
+    getTopConnection(){
+        let x, y;
+        if(this.isPlace){
+            x = parseInt(this.vizNode.getAttribute('cx'));
+            y = parseInt(this.vizNode.getAttribute('cy')) +8;
+        } else {
+            x = parseInt(this.vizNode.getAttribute('x')) +9;
+            y = parseInt(this.vizNode.getAttribute('y')) + 34;
+        }
+        return {x: x, y: y};
+    }
+
+    getRightConnection(){
+        let x, y;
+        if(this.isPlace){
+            x = parseInt(this.vizNode.getAttribute('cx'))+8;
+            y = parseInt(this.vizNode.getAttribute('cy'));
+        } else {
+            x = parseInt(this.vizNode.getAttribute('x'));
+            y = parseInt(this.vizNode.getAttribute('y')) + 17;
+        }
+        return {x: x, y: y};
+    }
+
+    getLeftConnection(){
+        let x, y;
+        if(this.isPlace){
+            x = parseInt(this.vizNode.getAttribute('cx')) - 8;
+            y = parseInt(this.vizNode.getAttribute('cy'));
+        } else {
+            x = parseInt(this.vizNode.getAttribute('x')) + 18;
+            y = parseInt(this.vizNode.getAttribute('y')) + 17;
+        }
+        return {x: x, y: y};
+    }
+
+    addTokens(numberOfTokens){
+        let tokenCircle = state.svg.getElementById(this.element.id + "tkn");
+        if(numberOfTokens == 0){
+            if(tokenCircle){
+                state.svg.removeChild(tokenCircle);
+            }
+        } else {
+            if(!tokenCircle){
+                let tokenCircle = document.createElementNS(state.svg.namespaceURI, 'circle');
+                tokenCircle.setAttribute('id', this.element.id + "tkn");
+                tokenCircle.setAttribute('r', 4);
+                tokenCircle.setAttribute('cx', this.xCoordinate);
+                tokenCircle.setAttribute('cy', this.yCoordinate);
+                tokenCircle.setAttribute('fill', 'black');
+                state.svg.appendChild(tokenCircle)
+            }
+        }
+    }
+
+
+}
+
+export function updateTokens(places, markingArr){
+    places.forEach(place => {
+        let placeNode = state.idNodeMap.get(place.id);
+        placeNode.addTokens(markingArr[place.index])
+    })
 }

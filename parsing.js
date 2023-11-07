@@ -221,7 +221,7 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
                 placeIndex++;
             }
             if(transition == null){
-                transition = new Transition(matchInc[2], matchInc[2], transIndex)
+                transition = new Transition(matchInc[2], "", transIndex)
                 trans.push(transition)
                 transIdMap.set(transition.id,transition)
                 transIndex++;
@@ -240,7 +240,7 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
                 placeIndex++;
             }
             if(transition == null){
-                transition = new Transition(matchOut[1], matchOut[1], transIndex)
+                transition = new Transition(matchOut[1], "", transIndex)
                 trans.push(transition)
                 transIdMap.set(transition.id,transition)
                 transIndex++;
