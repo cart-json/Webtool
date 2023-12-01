@@ -20,6 +20,10 @@ export class Transition{
         this.incoming.push(place)
         this.incomingWeights.set(place, weight)
     }
+    
+    getConnectedNodes() {
+        return [...this.outgoing, ...this.incoming];
+    }
 }
 export class Place{
 
@@ -41,5 +45,9 @@ export class Place{
     addIncoming(trans, weight){
         this.incoming.push(trans)
         this.incomingWeights.set(trans, weight)
+    }
+
+    getConnectedNodes() {
+        return [...this.outgoing, ...this.incoming];
     }
 }

@@ -151,17 +151,18 @@ function parsePNML(pnmlString) {
 export function parseShortPNF(transLines, placesLines, edgesLines){
     //errors:
     //declaring anything twice
-    //using IDs that are not declared
     //syntax error
 
     let linesT = transLines.split('\n')
     let linesP = placesLines.split('\n')
     let linesE = edgesLines.split('\n')
     let hasWeights = false;
+    let errors = []
 
     let places = [];
     let placeIndex = 0;
     let placeIdMap = new Map();
+    let lineIndex = 1;
 
     linesP.forEach(line => {
         let match = line.match(placeRegexSPNF);
@@ -170,7 +171,7 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
 
         }else if(match){
             if(placeIdMap.has(match[1])){
-                console.log("error: ID used twice: " + match[1])
+                errors.push({console: "places", line: lineIndex, errorMessage: "ID used twice: " + match[1]})
             } else {
                 let place = new Place(match[1], (match[3] ? parseInt(match[3]) : 0), placeIndex)
                 places.push(place)
@@ -178,13 +179,15 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
                 placeIndex++;
             }
         } else {
-            console.log("error: sytax incorrect: " + line)
+            errors.push({console: "places", line: lineIndex, errorMessage: "sytax incorrect: " + line})
         }
+        lineIndex++;
     })
 
     let trans = [];
     let transIndex = 0;
     let transIdMap = new Map();
+    lineIndex = 1;
 
     linesT.forEach(line => {
         let match = line.match(transRegexSPNF);
@@ -193,7 +196,7 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
 
         }else if(match){
             if(transIdMap.has(match[1])){
-                console.log("error: ID used twice: " + match[1])
+                errors.push({console: "transitions", line: lineIndex, errorMessage: "ID used twice: " + match[1]})
             } else {
                 let transition = new Transition(match[1], match[2], transIndex)
                 trans.push(transition)
@@ -201,7 +204,7 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
                 transIndex++;
             }
         } else {
-            console.log("error: sytax incorrect: " + line)
+            errors.push({console: "transitions", line: lineIndex, errorMessage: "sytax incorrect: " + line})
         }
     })
 
@@ -250,10 +253,10 @@ export function parseShortPNF(transLines, placesLines, edgesLines){
             place.addIncoming(transition, weight)
             if(weight > 1) hasWeights = true
         } else {
-            console.log("error: sytax incorrect: " + line)
+            errors.push({console: "transitions", line: lineIndex, errorMessage: "sytax incorrect: " + line})
         }
     })
-    return {trans: trans, places: places, weights: hasWeights}
+    return {trans: trans, places: places, weights: hasWeights, errors: errors};
 
 }
 

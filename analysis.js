@@ -15,7 +15,8 @@ export class Analysis {
             soundness: this.analyzeSoundness(this.places,this.transitions),
             strSoundness: this.analyzeStrSoundness([...this.places, ...this.transitions]),
             liveness: this.analyseLiveness(this.transitions, markings),
-            loops: this.loops}
+            loops: this.loops,
+            fullyConnected: this.isFullyConnected(this.places, this.transitions)}
     }
 
     reachabilityAna(places, transitions){
@@ -437,5 +438,31 @@ export class Analysis {
         let initialMarking = markings[0];
     
         this.checkForLoops(initialMarking, []);
+    }
+
+    depthFirstSearch(node, visited = new Set()) {
+        visited.add(node);
+    
+        node.getConnectedNodes().forEach(connectedNode => {
+            if (!visited.has(connectedNode)) {
+                this.depthFirstSearch(connectedNode, visited);
+            }
+        });
+    
+        return visited;
+    }
+    
+    isFullyConnected(places, transitions) {
+        let allNodes = [...places, ...transitions];
+    
+        for (let startNode of allNodes) {
+            let visited = this.depthFirstSearch(startNode);
+    
+            if (visited.size < allNodes.length) {
+                return false;
+            }
+        }
+    
+        return true;
     }
 }

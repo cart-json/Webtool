@@ -11,6 +11,14 @@ state.uncoveredMarkingIDs = new Set()
 document.getElementById("fileUpload").addEventListener("change", function() {
 
     let file = document.getElementById("fileUpload").files[0]
+    var fileInput = document.getElementById('fileUpload');
+    var fileNameDisplay = document.getElementById('fileName');
+
+    if (fileInput.files.length > 0) {
+        fileNameDisplay.textContent = fileInput.files[0].name;
+    } else {
+        fileNameDisplay.textContent = 'No file chosen';
+    }
     
     if (file) {
         let reader = new FileReader();
@@ -59,7 +67,10 @@ function analyzeConsoleInput(){
     let trans = document.getElementById("transition_console").value;
     let edges = document.getElementById("edge_console").value;
     let petriNetAr = parseShortPNF(trans, place, edges);
-    if(edges !== ""){
+    if(petriNetAr.errors.length != 0){
+        console.log(petriNetAr.errors)
+        showErrors(petriNetAr.errors)
+    } else if(edges !== ""){
         analyzeInput(petriNetAr)
     }
 
@@ -103,8 +114,11 @@ function analyzeInput(petriNetAr){
 
     state.uncoveredMarkingIDs = new Set()
 
+    console.log(petriNetAr);
     unparseToSPNF(places, transitions)
-    vizPetriNet(places.concat(transitions));
+    if(state.anaResult.fullyConnected){
+        vizPetriNet(places.concat(transitions));
+    }
     vizProperties(state.anaResult, state.uncoveredMarkingIDs)
     vizMarkingTable(markings, places, transitions, state.anaResult.liveness, state.anaResult.loops)
     
@@ -119,7 +133,9 @@ export function uncoverMarking(markingID){
 }
 
 export function vizMarkingInSVGNet(marking){
+    if(state.anaResult.fullyConnected){
         updateTokens(state.petriNetAr.places, marking.markingArr)
+    }
 }
 
 function loadConsole(places, transitions){
@@ -133,10 +149,10 @@ function vizTransitionLabels(transitions){
     labels.innerHTML = "";
 
     transitions.forEach(trans => {
-        if(trans.label != ""){
+        //if(trans.label != ""){
             labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
             labels.appendChild(document.createElement("br"))
-        }
+        //}
     })
 
 }
@@ -144,4 +160,13 @@ function vizTransitionLabels(transitions){
 function switchToPTNet(){
     var checkbox = document.getElementById("netType");
     checkbox.checked = true;
+}
+
+
+function showErrors(errors){
+    let errorConatiner = document.createElement("div");
+    errors.forEach(error => errorConatiner.appendChild(
+        document.createTextNode("error in " + error.console + " line " + error.line + ": " + error.errorMessage)))
+    document.getElementById("content").innerHTML = "";
+    document.getElementById("content").appendChild(errorConatiner);
 }

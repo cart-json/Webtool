@@ -11,8 +11,37 @@
     height: 65px;
     padding: 1px;
 }
-.top_input *{
-    float: left;
+button {
+    background-color: #000;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #000;
+}
+
+#fileUpload {
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+#fileName {
+    margin-left: 10px;
+}
+.custom-file-upload {
+    display: inline-block;
+    padding: 1px 3px;
+    cursor: pointer;
+    background-color: #000;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
 }
 body{
     background-size: 100%;
@@ -32,6 +61,13 @@ body{
     vertical-align:top;
     min-width: 300px;
     width: 50%;
+}
+#content {
+    overflow: auto; 
+    width: 100%; height: 75%; 
+    vertical-align:top;
+    border: 1px solid black;
+    box-sizing: border-box;
 }
 #console_wrap { 
     width: 100%; 
@@ -63,6 +99,9 @@ body{
     width: 100%;
     height: 20px;
 }
+#console_top *{
+    float: left;
+}
 .console {
     resize:none;
     width: 100%;
@@ -73,7 +112,7 @@ body{
     position: absolute;
     overflow: auto
 }
-#console_go, #console_save{
+#console_form{
     float: right;
 }
 #labelsAndPropsWrap1 { 
@@ -102,8 +141,8 @@ body{
     border: 1px;
     border-style: solid;
     box-sizing: border-box;
-    border-spacing: 0;  /* Removes spacing between table cells */
-    border-collapse: collapse; /* Ensures there's no extra space */
+    border-spacing: 0; 
+    border-collapse: collapse;
 }
 
 #markingTableWrap > div {

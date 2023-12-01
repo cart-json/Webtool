@@ -260,29 +260,40 @@ class Node{
 
     addTokens(numberOfTokens){
         let tokenCircle = state.svg.getElementById(this.element.id + "tkn");
-        if(numberOfTokens == 0){
-            if(tokenCircle){
-                state.svg.removeChild(tokenCircle);
-            }
-        } else {
-            if(!tokenCircle){
-                let tokenCircle = document.createElementNS(state.svg.namespaceURI, 'circle');
-                tokenCircle.setAttribute('id', this.element.id + "tkn");
-                tokenCircle.setAttribute('r', 4);
-                tokenCircle.setAttribute('cx', this.xCoordinate);
-                tokenCircle.setAttribute('cy', this.yCoordinate);
-                tokenCircle.setAttribute('fill', 'black');
-                state.svg.appendChild(tokenCircle)
-            }
+        if(tokenCircle){
+            state.svg.removeChild(tokenCircle);
         }
+        if(numberOfTokens > 1){
+            let newText = document.createElementNS(state.svg.namespaceURI, "text");
+            newText.setAttribute('id', this.element.id + "tkn");
+            newText.setAttribute("x", this.xCoordinate - 4);      // Set the x position
+            newText.setAttribute("y", this.yCoordinate + 4);      // Set the y position
+            newText.setAttribute("fill", "black"); // Set the fill color
+            newText.textContent = numberOfTokens;    
+            newText.style.fontSize = '12px';    // Set the text content
+            state.svg.appendChild(newText); 
+
+        } else if(numberOfTokens == 1){
+            let tokenCircle = document.createElementNS(state.svg.namespaceURI, 'circle');
+            tokenCircle.setAttribute('id', this.element.id + "tkn");
+            tokenCircle.setAttribute('r', 4);
+            tokenCircle.setAttribute('cx', this.xCoordinate);
+            tokenCircle.setAttribute('cy', this.yCoordinate);
+            tokenCircle.setAttribute('fill', 'black');
+            state.svg.appendChild(tokenCircle)
+        }
+        
     }
 
 
 }
 
 export function updateTokens(places, markingArr){
-    places.forEach(place => {
-        let placeNode = state.idNodeMap.get(place.id);
-        placeNode.addTokens(markingArr[place.index])
-    })
+    if(state.idNodeMap){
+        places.forEach(place => {
+            let placeNode = state.idNodeMap.get(place.id);
+            placeNode.addTokens(markingArr[place.index])
+        })
+    }
 }
+

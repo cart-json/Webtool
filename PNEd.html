@@ -12,26 +12,31 @@
         <div id="top">
             <h1 style="margin: 0px;" id="headline">PNEd</h1> 
             <div class="top_input">
-            <form>
-                    <input id="fileUpload" type="file">
-                    <p>EC-Net</p>
-                    <label class="switch">
-                        <input type="checkbox", id="netType">
-                        <span class="slider"></span>
-                    </label>
-                    <p>PT-Net</p>
-            </form>
-        </div>
+                <form>
+                    <label for="fileUpload" class="custom-file-upload">Browse</label>
+                    <span id="fileName">No file chosen</span>
+                    <input id="fileUpload" type="file" style="display: none;">
+                </form>
+            </div>
         </div>
         <div class="grid-container">
             <div class="divide1">
-                <div id="content" style="overflow: auto; background-color: lightcoral; width: 100%; height: 75%; vertical-align:top;">
+                <div id="content">
                 </div>
                 <div id="console_wrap">
                     <div id="console_top">  
-                        Console
-                        <button type="button" id="console_go">Go!</button>
-                        <button type="button" id="console_save">Save</button>
+                        <p>Console</p>
+                        <form id="console_form">
+                            <p>EC-Net</p>
+                                <label class="switch">
+                                    <input type="checkbox", id="netType">
+                                    <span class="slider"></span>
+                                </label>
+                                <p>PT-Net</p>
+                            </input>
+                            <button type="button" id="console_go">Go!</button>
+                            <button type="button" id="console_save">Save</button>
+                        </form>
                     </div>
                     <div id="console_body" style="width: 100; flex: 1;">
                         <div id="console_trans_wrap">

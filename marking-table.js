@@ -159,7 +159,7 @@ function createTableBody(){
 
 function createMarkingRow(marking){
     const row = document.createElement("tr")
-    row.appendChild(createTextCell(marking.id))
+    row.appendChild(createMarkingCell(marking))
     row.id = marking.id;
     marking.markingArr.forEach(placeMark => 
         row.appendChild(createTextCell(placeMark == Infinity?"ω" : placeMark)))
@@ -185,6 +185,16 @@ function createTextCell(text){
     return cell
 }
 
+function createMarkingCell(marking){
+    const cell = createTextCell(marking ? marking.id : "")
+    cell.addEventListener('click', function() {
+        vizMarkingInSVGNet(marking);
+    });
+    cell.classList.add('pointer');
+    return cell;
+
+}
+
 function createInteractiveTextCell(marking){
     const cell = createTextCell(marking ? marking.id : "")
     cell.classList.add('hidden');
@@ -193,7 +203,6 @@ function createInteractiveTextCell(marking){
     });
     cell.classList.add('pointer');
     return cell
-
 }
 
 function unhide(element, marking) {
@@ -201,9 +210,11 @@ function unhide(element, marking) {
         element.classList.remove('hidden');
         let row = element.parentElement;
         let cells = Array.from(row.cells)
+        //if all cells of a marking are not hidden, the marking will be uncovered
+        //it will be visible at "deadlocks" in the properties section
         let uncovered = cells.map(cell => cell.classList.contains('hidden')).reduce((prev, cellIsHidden) => prev && !cellIsHidden, true);
         if(uncovered){
-            uncoverMarking(marking)
+            uncoverMarking(row.id)
         }
     } else {
         if(marking){
