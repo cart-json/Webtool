@@ -23,7 +23,7 @@ button {
 button:hover {
     background-color: #000;
 }
-
+/* file upload*/
 #fileUpload {
     opacity: 0;
     position: absolute;
@@ -43,6 +43,7 @@ button:hover {
     border-radius: 4px;
     cursor: pointer;
 }
+/* containers and dividers*/
 body{
     background-size: 100%;
     height: 100vh;
@@ -56,12 +57,12 @@ body{
 }
 .divide1{
     flex: 1;
-    height: 100%;
     min-height: 300px;
     vertical-align:top;
     min-width: 300px;
     width: 50%;
 }
+/*space for the svg*/
 #content {
     overflow: auto; 
     width: 100%; height: 75%; 
@@ -69,6 +70,7 @@ body{
     border: 1px solid black;
     box-sizing: border-box;
 }
+/*console*/
 #console_wrap { 
     width: 100%; 
     height: 25%; 
@@ -81,18 +83,27 @@ body{
     position: relative;
     width: 30%;
     height: 100%;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    overflow: auto;
 }
 #console_trans_wrap {
     float: left;
     position: relative;
     width: 40%;
     height: 100%;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    overflow: auto;
 }
 #console_edges_wrap{
     float: left;
     position: relative;
     width: 30%;
     height: 100%;
+    border: 1px solid #000;
+    box-sizing: border-box;
+    overflow: auto;
 }
 
 #console_top {
@@ -102,19 +113,39 @@ body{
 #console_top *{
     float: left;
 }
-.console {
-    resize:none;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    border: 1px;
-    border-style: solid;
-    position: absolute;
-    overflow: auto
+#console_body {
+    
+    max-height: calc(100% - 20px);
 }
-#console_form{
+#console_buttons{
     float: right;
 }
+.console_element{
+    height: 20px;
+    padding: 1px;
+    margin: 2px;
+    width: 200px;
+    border: 1px solid gray;
+    font-size: small;
+    background-color: lightgray;
+}
+.console_element *{
+    float: left;
+    margin: 0px 1px;
+}
+.console_element input{
+    width: 70px;
+}
+.id_wrap{
+    height: 100%;
+    width: 30px;
+}
+
+#add_edge_button{
+    float: left;
+}
+
+/*abelsAndProps*/
 #labelsAndPropsWrap1 { 
     min-width: 30vw;
     height: 25%; 
@@ -129,6 +160,7 @@ body{
     height: 100%;
     font-size: 13px;
 }
+/*Marking Table*/
 #markingTableWrap{
     overflow: auto;
     display: flex;
@@ -160,59 +192,14 @@ body{
 #markingTableWrap table{
     position: relative;
     table-layout: fixed;
-    border: none; /* Removes border */
-    margin: 0;    /* Removes any outside spacing */
-    padding: 0;   /* Removes any inside spacing */
+    border: none;
+    margin: 0;
+    padding: 0;
 }
 table div{
     height: 20px;
     width: 30px;
     font-size: 13px;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 30px;
-    height: 17px;
-}
-
-/* Hide default HTML checkbox */
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-/* The slider */
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #000;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 13px;
-    width: 13px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-}
-
-input:checked + .slider {
-    background-color: #000;
-}
-
-input:checked + .slider:before {
-    -webkit-transform: translateX(13px);
-    -ms-transform: translateX(13px);
-    transform: translateX(13px);
 }
 .locked div{
     background-color: lightgray !important;
@@ -232,6 +219,46 @@ input:checked + .slider:before {
 #unhideButton{
     position: absolute;
     z-index: 2;
+}
+/*PT-net Ec-net switch*/
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 17px;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #000;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 13px;
+    width: 13px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+}
+
+input:checked + .slider {
+    background-color: #000;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(13px);
+    -ms-transform: translateX(13px);
+    transform: translateX(13px);
 }
 .pointer:hover {
     cursor: pointer;

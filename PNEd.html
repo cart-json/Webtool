@@ -26,27 +26,33 @@
                 <div id="console_wrap">
                     <div id="console_top">  
                         <p>Console</p>
-                        <form id="console_form">
+                        <form id="console_buttons">
                             <p>EC-Net</p>
                                 <label class="switch">
                                     <input type="checkbox", id="netType">
                                     <span class="slider"></span>
                                 </label>
                                 <p>PT-Net</p>
-                            </input>
                             <button type="button" id="console_go">Go!</button>
                             <button type="button" id="console_save">Save</button>
                         </form>
                     </div>
-                    <div id="console_body" style="width: 100; flex: 1;">
-                        <div id="console_trans_wrap">
-                            <textarea class="console" id="transition_console"> </textarea>
+                    <div id="console_body">
+                        <div id="console_trans_wrap"> 
+                            <div id="trans_list">
+                            </div> 
+                            <button class="add_trans_button" id="add_trans">add transition</button>
                         </div>
                         <div id="console_places_wrap">
-                            <textarea class="console" id="place_console"></textarea>
+                            <div id="place_list">
+                            </div> 
+                            <button class="add_place_button" id="add_place">add place</button>
                         </div>
                         <div id="console_edges_wrap">
-                            <textarea class="console" id="edge_console"></textarea>
+                            <div id="edge_list">
+                            </div>
+                            <button class="add_edge_button" id="add_edgeT">add T->P</button>
+                            <button class="add_edge_button" id="add_edgeP">add P->T</button>
                         </div>
 
                     </div>

@@ -1,14 +1,9 @@
-import { Place, Transition } from "./PetriNet.js"
+import { Place, Transition, PetriNet } from "./PetriNet.js"
 
-const placeRegex = /^place "(P\d+)"( init (\d+))?;$/;
-const transRegex = /^trans "(T\d+)"~"([\w ]+)"( in ("P\d+"(?:, "P\d+")*))?( out ("P\d+"(?:, "P\d+")*))?;$/
-const placeListRegex = /"(P\d+)"/g
+const placeRegex = /^place "P(\d+)"( init (\d+))?;$/;
+const transRegex = /^trans "T(\d+)"~"([\w ]+)"( in ("P\d+"(?:, "P\d+")*))?( out ("P\d+"(?:, "P\d+")*))?;$/
+const placeListRegex = /"P(\d+)"/g
 const emptyLineRegex = /^[ ]*?$/g
-
-const transRegexSPNF = /^([Tt]\d+)[ ]*?~[ ]*?([\w ]+)$/; //T3 ~ Label
-const placeRegexSPNF = /^([Pp]\d+)[ ]*?(~[ ]*?(\d+))?$/;    //P3 ~ 1  //P4
-const incEdgeRegexSPNF = /^([Pp]\d+)[ ]*?->[ ]*?([Tt]\d+)([ ]*?~[ ]*?(\d+))?$/; //P3 -> T3
-const outEdgeRegexSPNF = /^([Tt]\d+)[ ]*?->[ ]*?([Pp]\d+)([ ]*?~[ ]*?(\d+))?$/; //T3 -> P4 ~ 3
 
 export function parse(file, type){
     if(type === "tpn"){
@@ -20,13 +15,8 @@ export function parse(file, type){
 
 function parseTPN(file){
     let lines = file.split('\n')
-    let places = []
-    let trans = []
-    let edges = []
-    let placeIndex = 0;
-    let transIndex = 0;
-    let placeIdMap = new Map();
-    let transIdMap = new Map();
+    let edges = [];
+    let petriNet = new PetriNet();
 
     lines.forEach(line => {
         let matchP = line.match(placeRegex)
@@ -35,51 +25,28 @@ function parseTPN(file){
         if(emptyLine){
 
         }else if(matchP){
-            if(placeIdMap.has(matchP[1])){
+            if(petriNet.placeExists(matchP[1])){
                 console.log("error: ID used twice: " + matchP[1])
             } else {
-                let place = new Place(matchP[1], (matchP[3] ? parseInt(matchP[3]) : 0), placeIndex)
-                places.push(place)
-                placeIdMap.set(place.id,place)
-                placeIndex++;
+                petriNet.addPlace(matchP[1], (matchP[3] ? parseInt(matchP[3]) : 0), 1)
             }
         }else if(matchT){
-            if(transIdMap.has(matchT[1])){
+            if(petriNet.transExists(matchT[1])){
                 console.log("error: ID used twice: " + matchT[1])
             } else {
-                let transition = new Transition(matchT[1], matchT[2], transIndex)
-                trans.push(transition)
-                transIdMap.set(transition.id,transition)
-                edges.push({transId: matchT[1], incoming: readPlaces(matchT[4]), outgoing:readPlaces(matchT[6])})
-                transIndex++;
+                petriNet.addTrans(matchT[1], matchT[2])
+                edges.push({transID: matchT[1], incoming: readPlaces(matchT[4]), outgoing:readPlaces(matchT[6])})
             }
         } else {
             console.log("error: sytax incorrect: " + line)
         }
     });
     edges.forEach(edge => {
-        let transition = transIdMap.get(edge.transId)
-        edge.incoming.forEach(placeName => {
-            if(placeIdMap.has(placeName)){
-                let place = placeIdMap.get(placeName)
-                transition.addIncoming(place, 1)
-                place.addOutgoing(transition, 1)
-            } else {
-                console.log("error: undeclared node used: " + placeName)
-            }
-        })
-        edge.outgoing.forEach(placeName => {
-            if(placeIdMap.has(placeName)){
-                let place = placeIdMap.get(placeName)
-                transition.addOutgoing(place, 1)
-                place.addIncoming(transition, 1)
-            } else {
-                console.log("error: undeclared node used: " + placeName)
-            }
-        })
+        edge.incoming.forEach(placeID => petriNet.addEdge(placeID, edge.transID, 1, false))
+        edge.outgoing.forEach(placeID => petriNet.addEdge(edge.transID, placeID, 1, true))
 
     })
-    return {trans: trans, places: places, weights: false}
+    return petriNet;
 }
 
 function parsePNML(pnmlString) {
@@ -148,126 +115,6 @@ function parsePNML(pnmlString) {
     return petriNet;
 }
 
-export function parseShortPNF(transLines, placesLines, edgesLines){
-    //errors:
-    //declaring anything twice
-    //syntax error
-
-    let linesT = transLines.split('\n')
-    let linesP = placesLines.split('\n')
-    let linesE = edgesLines.split('\n')
-    let hasWeights = false;
-    let errors = []
-
-    let places = [];
-    let placeIndex = 0;
-    let placeIdMap = new Map();
-    let lineIndex = 1;
-
-    linesP.forEach(line => {
-        let match = line.match(placeRegexSPNF);
-        var emptyLine = line.match(emptyLineRegex)
-        if(emptyLine){
-
-        }else if(match){
-            if(placeIdMap.has(match[1])){
-                errors.push({console: "places", line: lineIndex, errorMessage: "ID used twice: " + match[1]})
-            } else {
-                let place = new Place(match[1], (match[3] ? parseInt(match[3]) : 0), placeIndex)
-                places.push(place)
-                placeIdMap.set(place.id,place)
-                placeIndex++;
-            }
-        } else {
-            errors.push({console: "places", line: lineIndex, errorMessage: "sytax incorrect: " + line})
-        }
-        lineIndex++;
-    })
-
-    let trans = [];
-    let transIndex = 0;
-    let transIdMap = new Map();
-    lineIndex = 1;
-
-    linesT.forEach(line => {
-        let match = line.match(transRegexSPNF);
-        var emptyLine = line.match(emptyLineRegex)
-        if(emptyLine){
-
-        }else if(match){
-            if(transIdMap.has(match[1])){
-                errors.push({console: "transitions", line: lineIndex, errorMessage: "ID used twice: " + match[1]})
-            } else {
-                let transition = new Transition(match[1], match[2], transIndex)
-                trans.push(transition)
-                transIdMap.set(transition.id,transition)
-                transIndex++;
-            }
-        } else {
-            errors.push({console: "transitions", line: lineIndex, errorMessage: "sytax incorrect: " + line})
-        }
-    })
-
-    linesE.forEach(line => {
-        let matchInc = line.match(incEdgeRegexSPNF);
-        let matchOut = line.match(outEdgeRegexSPNF);
-        let emptyLine = line.match(emptyLineRegex)
-        if(emptyLine){
-
-        }else if(matchInc){
-            let transition =  transIdMap.get(matchInc[2])
-            let place =  placeIdMap.get(matchInc[1])
-            if(place == null){
-                place = new Place(matchInc[1], 0, placeIndex);
-                places.push(place)
-                placeIdMap.set(place.id,place)
-                placeIndex++;
-            }
-            if(transition == null){
-                transition = new Transition(matchInc[2], "", transIndex)
-                trans.push(transition)
-                transIdMap.set(transition.id,transition)
-                transIndex++;
-            }
-            let weight = matchInc[4] == undefined ? 1 : parseInt(matchInc[4]);
-            transition.addIncoming(place, weight)
-            place.addOutgoing(transition, weight)
-            if(weight > 1) hasWeights = true
-        } else if (matchOut){
-            let transition =  transIdMap.get(matchOut[1])
-            let place =  placeIdMap.get(matchOut[2])
-            if(place == null){
-                place = new Place(matchOut[2], 0, placeIndex);
-                places.push(place)
-                placeIdMap.set(place.id,place)
-                placeIndex++;
-            }
-            if(transition == null){
-                transition = new Transition(matchOut[1], "", transIndex)
-                trans.push(transition)
-                transIdMap.set(transition.id,transition)
-                transIndex++;
-            }
-            let weight = matchOut[4] == undefined ? 1 : parseInt(matchOut[4]);
-            transition.addOutgoing(place, weight)
-            place.addIncoming(transition, weight)
-            if(weight > 1) hasWeights = true
-        } else {
-            errors.push({console: "transitions", line: lineIndex, errorMessage: "sytax incorrect: " + line})
-        }
-    })
-    return {trans: trans, places: places, weights: hasWeights, errors: errors};
-
-}
-
-function find(elemAr, elemId){
-    var result = []
-    elemAr.forEach(elem => {
-        if(elem.id === elemId) result.push(elem)
-    })
-    return result
-}
-
 function readPlaces(placeStr){
     var match;
     var placeArray = []
@@ -304,35 +151,6 @@ export function getPlacesAsString(file){
 
 }
 
-export function unparseToSPNF(places, transitions) {
-    let placeResult = '';
-    let transResult = '';
-    let edgeResult = '';
-
-    places.forEach(place => {
-        let placeString = place.init > 0 ? `${place.id} ~ ${place.init}` : `${place.id}`;
-        placeResult += placeString + '\n';
-    });
-
-    transitions.forEach(transition => {
-        let transitionString = `${transition.id} ~ ${transition.label.trim()}`;
-        transResult += transitionString + '\n';
-
-        transition.incoming.forEach(incoming => {
-            let weight = transition.incomingWeights.get(incoming);
-            let edgeString = weight && weight > 1 ? `${incoming.id} -> ${transition.id} ~ ${weight}` : `${incoming.id} -> ${transition.id}`;
-            edgeResult += edgeString + '\n';
-        });
-
-        transition.outgoing.forEach(outgoing => {
-            let weight = transition.outgoingWeights.get(outgoing);
-            let edgeString = weight && weight > 1 ? `${transition.id} -> ${outgoing.id} ~ ${weight}` : `${transition.id} -> ${outgoing.id}`;
-            edgeResult += edgeString + '\n';
-        });
-    });
-
-    return {placesSPNF: placeResult, transSPNF: transResult, edgeSPNF: edgeResult}
-}
 
 function unparseToTPN(places, transitions) {
     let placeResult = '';
@@ -387,11 +205,6 @@ function unparseToTPN(places, transitions) {
 
     return { placesSPNF: placeResult, transSPNF: transResult, edgeSPNF: edgeResult };
 }
-
-const data = {
-    places: [/* your places data */],
-    transitions: [/* your transitions data */],
-};
 
 export function unparseToPNML(trans, places) {
     let pnml = `<?xml version="1.0" encoding="UTF-8"?>

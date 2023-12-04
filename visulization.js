@@ -1,8 +1,9 @@
 let state = {}
 
 
-export function vizPetriNet(petriNetAr) {
-    if(petriNetAr.length == 0) return;
+export function vizPetriNet(petriNet) {
+    console.log(petriNet);
+    if(petriNet.length == 0) return;
 
     let addedElems = new Set()
     let maxWidth = 0;
@@ -18,22 +19,22 @@ export function vizPetriNet(petriNetAr) {
         let newNode = new Node(element, grid[rowIndex].length, rowIndex)
         grid[rowIndex].push(newNode)
         nodes.push(newNode)
-        state.idNodeMap.set(element.id, newNode)
+        state.idNodeMap.set(element.id_text, newNode)
         if (grid[rowIndex].length > maxWidth){
             maxWidth = grid[rowIndex].length;
         }
         return newNode;
     }
 
-    for (var n = 0; n < petriNetAr.length; n++) {
-        if (petriNetAr[n].incoming.length == 0) {
-            queue.push(addNode(petriNetAr[n], 0));
-            addedElems.add(petriNetAr[n]);
+    for (var n = 0; n < petriNet.length; n++) {
+        if (petriNet[n].incoming.length == 0) {
+            queue.push(addNode(petriNet[n], 0));
+            addedElems.add(petriNet[n]);
         }
     };
     if(nodes.length == 0){
-        queue.push(addNode(petriNetAr[0], 0));
-        addedElems.add(petriNetAr[0]);
+        queue.push(addNode(petriNet[0], 0));
+        addedElems.add(petriNet[0]);
     }
     maxWidth = nodes.length;
     while (queue.length != 0) {
@@ -58,9 +59,9 @@ export function vizPetriNet(petriNetAr) {
     svg.setAttribute('height', grid.length *75)
     nodes.forEach(node => node.drawNode(svg));
     
-    petriNetAr.forEach(elem => {
+    petriNet.forEach(elem => {
         elem.outgoing.forEach(follElem => {
-            connect(state.idNodeMap.get(elem.id), state.idNodeMap.get(follElem.id), svg)
+            connect(state.idNodeMap.get(elem.id_text), state.idNodeMap.get(follElem.id_text), svg)
         })
     })
     document.getElementById("content").innerHTML = "";
@@ -118,7 +119,6 @@ function drawLine(x1, y1, x2, y2, svg){
     svg.appendChild(vLine);
 
     const arrowheadLength = 10;
-    // Arrowhead direction calculation
     let angle;
     if (y2 > y1) {
         angle = Math.PI/2;  // pointing downwards
@@ -148,7 +148,7 @@ function addRect(node, svg) {
     var rect = document.createElementNS(svg.namespaceURI, 'rect');
     const height = 34;
     const width = 18;
-    rect.setAttribute('id', node.element.id);
+    rect.setAttribute('id', node.element.id_text);
     rect.setAttribute('x', node.xCoordinate - (width / 2));
     rect.setAttribute('y', node.yCoordinate - (height / 2));
     rect.setAttribute('width', width);
@@ -159,12 +159,12 @@ function addRect(node, svg) {
     svg.appendChild(rect)
 
     var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = node.element.id;
+    label.textContent = node.element.id_text;
     label.setAttribute('x', node.xCoordinate + 20);
     label.setAttribute('y', node.yCoordinate - 20);
-    label.setAttribute('fill', 'black'); // Text color
-    label.setAttribute('font-family', 'Arial'); // Font family for the text
-    label.setAttribute('font-size', '16'); // Font size for the text
+    label.setAttribute('fill', 'black');
+    label.setAttribute('font-family', 'Arial');
+    label.setAttribute('font-size', '16');
     label.setAttribute('text-anchor', 'middle');
     svg.appendChild(label)
 
@@ -174,7 +174,7 @@ function addRect(node, svg) {
 
 function addPlace(node, svg) {
     var circle = document.createElementNS(svg.namespaceURI, 'circle');
-    circle.setAttribute('id', node.element.id);
+    circle.setAttribute('id', node.element.id_text);
     circle.setAttribute('r', 8);
     circle.setAttribute('cx', node.xCoordinate);
     circle.setAttribute('cy', node.yCoordinate);
@@ -184,12 +184,12 @@ function addPlace(node, svg) {
     svg.appendChild(circle)
 
     var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = node.element.id;
+    label.textContent = node.element.id_text;
     label.setAttribute('x', node.xCoordinate + 20);
     label.setAttribute('y', node.yCoordinate - 10);
-    label.setAttribute('fill', 'black'); // Text color
-    label.setAttribute('font-family', 'Arial'); // Font family for the text
-    label.setAttribute('font-size', '16'); // Font size for the text
+    label.setAttribute('fill', 'black');
+    label.setAttribute('font-family', 'Arial');
+    label.setAttribute('font-size', '16');
     label.setAttribute('text-anchor', 'middle');
     svg.appendChild(label)
     return circle;
@@ -201,7 +201,7 @@ class Node{
         this.element = element;
         this.column = column;
         this.row = row;
-        this.isPlace = element.type === "place";
+        this.isPlace = !element.isTrans;
         this.xCoordinate = (column + 1) * distance;
         this.yCoordinate = (row + 1) * distance;
     }
@@ -291,7 +291,7 @@ class Node{
 export function updateTokens(places, markingArr){
     if(state.idNodeMap){
         places.forEach(place => {
-            let placeNode = state.idNodeMap.get(place.id);
+            let placeNode = state.idNodeMap.get(place.id_text);
             placeNode.addTokens(markingArr[place.index])
         })
     }

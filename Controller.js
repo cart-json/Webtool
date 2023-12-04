@@ -1,8 +1,9 @@
-import { parse, parseShortPNF, unparseToSPNF, unparseToPNML} from "./parsing.js";
+import { parse, unparseToPNML} from "./parsing.js";
 import { vizPetriNet, updateTokens } from "./visulization.js";
 import { Analysis } from "./analysis.js"
 import { vizMarkingTable } from "./marking-table.js"
 import {vizProperties} from "./properties.js"
+import {loadConsole, readConsole, addTrans, addPlace, addEdge} from "./console.js"
 
 
 let state = {}
@@ -30,64 +31,24 @@ document.getElementById("fileUpload").addEventListener("change", function() {
         }
         reader.readAsText(file, "UTF-8");
         reader.addEventListener('load', () => {
-            let petriNetAr = parse(reader.result, filetype);
-            loadConsole(petriNetAr.places, petriNetAr.trans)
-            analyzeInput(petriNetAr);
-            //if(filetype === "tpn") loadConsole(reader.result)
+            let petriNet = parse(reader.result, filetype);
+            loadConsole(petriNet.places, petriNet.transitions)
+            analyzeInput(petriNet);
         })
     } else {
         alert("please upload file");
     }
 });
 
-document.getElementById("console_body")
-    .querySelectorAll('textarea')
-    .forEach(function(textarea){
-        textarea.addEventListener("blur", reloadIfInputInactive)
-    })
-
-function reloadIfInputInactive(){
-    let transInput = document.getElementById("transition_console");
-    let placeInput = document.getElementById("place_console");
-    let edgeInput = document.getElementById("edge_console");
-
-    let activeElement = document.activeElement;
-
-    if(transInput !== activeElement &&
-        placeInput !== activeElement && 
-        edgeInput !== activeElement){
-
-        analyzeConsoleInput();
-    }
-}
-
-function analyzeConsoleInput(){
-
-    let place = document.getElementById("place_console").value;
-    let trans = document.getElementById("transition_console").value;
-    let edges = document.getElementById("edge_console").value;
-    let petriNetAr = parseShortPNF(trans, place, edges);
-    if(petriNetAr.errors.length != 0){
-        console.log(petriNetAr.errors)
-        showErrors(petriNetAr.errors)
-    } else if(edges !== ""){
-        analyzeInput(petriNetAr)
-    }
-
-}
-
 document.getElementById("console_go").onclick = function(){
-    analyzeConsoleInput();
+    analyzeInput(readConsole());
 }
 
 document.getElementById("console_save").onclick = function(){
 
-    let place = document.getElementById("place_console").value;
-    let trans = document.getElementById("transition_console").value;
-    let edges = document.getElementById("edge_console").value;
-    let petriNetAr = parseShortPNF(trans, place, edges);
+    let petriNet = readConsole;
 
-    const content = unparseToPNML(petriNetAr.trans, petriNetAr.places)
+    const content = unparseToPNML(petriNet.transitions, petriNet.places)
 
     const blob = new Blob([content], { type: 'text/plain' });
   
@@ -97,27 +58,25 @@ document.getElementById("console_save").onclick = function(){
     a.click();
 }
 
-function analyzeInput(petriNetAr){
+function analyzeInput(petriNet){
     let netType = document.getElementById('netType').checked;
-    if(netType != petriNetAr.weights){
+    if(netType != petriNet.weights){
         switchToPTNet();
         netType = true;
     }
     netType = document.getElementById('netType').checked;
-    state.petriNetAr = petriNetAr;
-    let places = petriNetAr.places;
-    let transitions = petriNetAr.trans;
+    state.petriNet = petriNet;
+    let places = petriNet.places;
+    let transitions = petriNet.transitions;
     let analysis = new Analysis(places, transitions, netType)
 
     state.anaResult = analysis.analyse()
     let markings = state.anaResult.markings
 
     state.uncoveredMarkingIDs = new Set()
+    vizPetriNet(places.concat(transitions));
 
-    console.log(petriNetAr);
-    unparseToSPNF(places, transitions)
     if(state.anaResult.fullyConnected){
-        vizPetriNet(places.concat(transitions));
     }
     vizProperties(state.anaResult, state.uncoveredMarkingIDs)
     vizMarkingTable(markings, places, transitions, state.anaResult.liveness, state.anaResult.loops)
@@ -134,25 +93,16 @@ export function uncoverMarking(markingID){
 
 export function vizMarkingInSVGNet(marking){
     if(state.anaResult.fullyConnected){
-        updateTokens(state.petriNetAr.places, marking.markingArr)
+        updateTokens(state.petriNet.places, marking.markingArr)
     }
 }
 
-function loadConsole(places, transitions){
-    let netSPNF = unparseToSPNF(places, transitions)
-    document.getElementById("transition_console").value = netSPNF.transSPNF
-    document.getElementById("place_console").value = netSPNF.placesSPNF
-    document.getElementById("edge_console").value = netSPNF.edgeSPNF
-}
 function vizTransitionLabels(transitions){
     let labels = document.getElementById("labels");
     labels.innerHTML = "";
-
     transitions.forEach(trans => {
-        //if(trans.label != ""){
-            labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
-            labels.appendChild(document.createElement("br"))
-        //}
+        labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
+        labels.appendChild(document.createElement("br"))
     })
 
 }
@@ -162,11 +112,17 @@ function switchToPTNet(){
     checkbox.checked = true;
 }
 
+document.getElementById("add_trans").onclick = function(){
+    addTrans();
+}
 
-function showErrors(errors){
-    let errorConatiner = document.createElement("div");
-    errors.forEach(error => errorConatiner.appendChild(
-        document.createTextNode("error in " + error.console + " line " + error.line + ": " + error.errorMessage)))
-    document.getElementById("content").innerHTML = "";
-    document.getElementById("content").appendChild(errorConatiner);
+document.getElementById("add_place").onclick = function(){
+    addPlace();
+}
+
+document.getElementById("add_edgeT").onclick = function(){
+    addEdge(true);
+}
+document.getElementById("add_edgeP").onclick = function(){
+    addEdge(false);
 }
