@@ -1,4 +1,4 @@
-import { Place, Transition, PetriNet } from "./PetriNet.js"
+import { PetriNet } from "./PetriNet.js"
 
 const placeRegex = /^place "P(\d+)"( init (\d+))?;$/;
 const transRegex = /^trans "T(\d+)"~"([\w ]+)"( in ("P\d+"(?:, "P\d+")*))?( out ("P\d+"(?:, "P\d+")*))?;$/
@@ -55,11 +55,7 @@ function parsePNML(pnmlString) {
     const xmlDoc = parser.parseFromString(pnmlString, 'text/xml');
 
     // Initialize the structure of the Petri net
-    const petriNet = {
-        places: [],
-        trans: [],
-        weights: false,
-    };
+    const petriNet = new PetriNet();
 
     // Helper function to extract text content from an element by tag name
     const getText = (element, tagName) => {
@@ -67,13 +63,20 @@ function parsePNML(pnmlString) {
         return foundElement ? foundElement.textContent : null;
     };
 
+    const extractID = (id_text) => {
+        const id_match =  id_text.match(/\d+/);
+        let id;
+        id_match ? id = parseInt(id_match[0], 10) : parsingError("id issue");
+        return id;
+    }
+
     // Process places
     let placeCounter = 0;
     const placeElements = xmlDoc.getElementsByTagName('place');
     for (let place of placeElements) {
-        const id = place.getAttribute('id');
+        const id = extractID(place.getAttribute('id'));
         const initialMarking = getText(place, 'initialMarking') || '0'; // Assumes missing initialMarking means 0
-        petriNet.places.push(new Place(id, parseInt(initialMarking, 10), placeCounter));
+        petriNet.addPlace(id, initialMarking, 1)
         placeCounter++;
     }
 
@@ -81,34 +84,24 @@ function parsePNML(pnmlString) {
     const transitionElements = xmlDoc.getElementsByTagName('transition');
     let transCounter = 0;
     for (let trans of transitionElements) {
-        const id = trans.getAttribute('id');
+        const id = extractID(trans.getAttribute('id'));
         const label = getText(trans, 'name') || id; // Use the ID as a fallback label
-        petriNet.trans.push(new Transition(id, label,transCounter));
+        petriNet.addTrans(id, label);
         transCounter++;
     }
 
     // Process arcs and update places and transitions
     const arcElements = xmlDoc.getElementsByTagName('arc');
     for (let arc of arcElements) {
-        const sourceId = arc.getAttribute('source');
-        const targetId = arc.getAttribute('target');
+        const sourceId = extractID(arc.getAttribute('source'));
+        const targetId = extractID(arc.getAttribute('target'));
         const inscription = getText(arc, 'inscription');
         const weight = inscription ? parseInt(inscription, 10) : 1; // Assumes missing inscription means weight of 1
         if(!petriNet.weights && weight > 1) petriNet.weights = true;
-        // Find source and target in places and transitions
-        let source = petriNet.places.find(p => p.id === sourceId) || petriNet.trans.find(t => t.id === sourceId);
-        let target = petriNet.places.find(p => p.id === targetId) || petriNet.trans.find(t => t.id === targetId);
 
-        if (!source || !target) {
-            console.error(`Invalid arc: missing source or target for arc from ${sourceId} to ${targetId}`);
-            continue;
-        }
-
-        // Update source and target structures
-        source.outgoing.push(target);
-        source.outgoingWeights.set(target, weight);
-        target.incoming.push(source);
-        target.incomingWeights.set(source, weight);
+        const startIsTrans = arc.getAttribute('source').startsWith("T")
+        
+        petriNet.addEdge(sourceId, targetId, weight, startIsTrans);
     }
 
     // The petriNet object is now populated with the data from the PNML
@@ -264,4 +257,10 @@ export function unparseToPNML(trans, places) {
     `;
 
     return pnml;
+}
+
+
+
+function parsingError(text){
+    console.log(text);
 }

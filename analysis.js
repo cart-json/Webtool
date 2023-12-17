@@ -1,9 +1,9 @@
 export class Analysis {
-    constructor(places, transitions,netType){
-        this.places = places;
-        this.transitions = transitions;
-        this.netType = netType;
-        this.coverabilityGraph = this.coverabilityAna(places,transitions)
+    constructor(petriNet){
+        this.places = petriNet.places;
+        this.transitions = petriNet.transitions;
+        this.isPTNet = petriNet.isPTNet;
+        this.coverabilityGraph = this.coverabilityAna(this.places, this.transitions)
         this.loops = [];
     }
     analyse(){
@@ -27,7 +27,7 @@ export class Analysis {
         markings[0] = initialMarking
         let counter = 1;
         let depth = this.coverabilityGraph.length;
-        while(toExplore.length > 0 && (counter < depth || !this.netType)){
+        while(toExplore.length > 0 && (counter < depth || !this.isPTNet)){
             let currentMarking = toExplore.shift();
             this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
                 let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
@@ -44,7 +44,7 @@ export class Analysis {
                 }
             })
         }
-        while(toExplore.length > 0 && this.netType){
+        while(toExplore.length > 0 && this.isPTNet){
             let currentMarking = toExplore.shift();
             this.getActiveTransitions(transitions, currentMarking.markingArr).forEach(trans => {
                 let newMarkingArr = this.fireTransition(trans, currentMarking.markingArr)
@@ -198,7 +198,7 @@ export class Analysis {
     //returning all active transition for a specific marking
     getActiveTransitions(transitions,markingArr){
         let result;
-        if(this.netType){
+        if(this.isPTNet){
             //in a PT net: all incoming places have to have more tokens than the edge weight
             result = transitions.filter(trans => 
                 (trans.incoming.reduce((active, place)=>

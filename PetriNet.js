@@ -4,7 +4,7 @@ export class PetriNet{
         this.places = [];
         this.placeIdMap = new Map();
         this.transIdMap = new Map();
-        this.weights = false;
+        this.isPTNet = false;
     }
 
     placeExists(id){
@@ -22,6 +22,7 @@ export class PetriNet{
     }
 
     addTrans(id, label){
+        id = parseInt(id);
         let transition = new Transition(id, label, this.transitions.length);
         this.transitions.push(transition);
         this.transIdMap.set(id, transition);
@@ -29,6 +30,12 @@ export class PetriNet{
     }
 
     addPlace(id, init, max){
+        id = parseInt(id);
+        init = parseInt(init);
+        max = parseInt(max);
+        if(max != 1){
+            this.isPTNet = true;
+        }
         let place = new Place(id,init,max,this.places.length);
         this.places.push(place);
         this.placeIdMap.set(id, place);
@@ -36,8 +43,11 @@ export class PetriNet{
     }
 
     addEdge(start_id_number, target_id_number, weight, startIsTrans){
+        start_id_number = parseInt(start_id_number);
+        target_id_number = parseInt(target_id_number);
+        weight = parseInt(weight);
         if(weight != 1){
-            this.weights = true;
+            this.isPTNet = true;
         }
         let start;
         let target;

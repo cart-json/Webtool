@@ -1,8 +1,9 @@
 let state = {}
 
 
-export function vizPetriNet(petriNet) {
-    console.log(petriNet);
+export function vizPetriNet(petriNet, highlightTrasition) {
+    state.transOnclickFunction = highlightTrasition;
+    state.highlightedNode = -1;
     if(petriNet.length == 0) return;
 
     let addedElems = new Set()
@@ -55,8 +56,8 @@ export function vizPetriNet(petriNet) {
 
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     state.svg = svg;
-    svg.setAttribute('width', maxWidth * 70 + 50)
-    svg.setAttribute('height', grid.length *75)
+    svg.setAttribute('width', maxWidth * 80 + 50)
+    svg.setAttribute('height', grid.length *90)
     nodes.forEach(node => node.drawNode(svg));
     
     petriNet.forEach(elem => {
@@ -69,32 +70,7 @@ export function vizPetriNet(petriNet) {
 }
 
 function connect(startNode, targetNode, svg) {
-    let startCoord;
-    let targetCoord;
-    if(startNode.row >= targetNode.row){
-        if(startNode.column == targetNode.column){
-            startCoord = startNode.getBottomConnection();
-            targetCoord = targetNode.getTopConnection();
-        } else if (startNode.column >= targetNode.column){
-            startCoord = startNode.getLeftConnection();
-            targetCoord = targetNode.getTopConnection();
-        } else {
-            startCoord = startNode.getRightConnection();
-            targetCoord = targetNode.getTopConnection();
-        }
-    } else {
-        if(startNode.column == targetNode.column){
-            startCoord = startNode.getTopConnection();
-            targetCoord = targetNode.getBottomConnection();
-        } else if (startNode.column >= targetNode.column){
-            startCoord = startNode.getLeftConnection();
-            targetCoord = targetNode.getBottomConnection();
-        } else {
-            startCoord = startNode.getRightConnection();
-            targetCoord = targetNode.getBottomConnection();
-        }
-    }
-    drawLine(startCoord.x, startCoord.y, targetCoord.x, targetCoord.y, svg)
+    new Arrow(startNode, targetNode, svg);
 }
 function drawLine(x1, y1, x2, y2, svg){
     // Horizontal line
@@ -156,6 +132,7 @@ function addRect(node, svg) {
     rect.setAttribute('fill', 'black');
     rect.setAttribute('stroke', 'black');
     rect.setAttribute('stroke-width', 2);
+    rect.onclick = function(){state.transOnclickFunction(node.element.id);};
     svg.appendChild(rect)
 
     var label = document.createElementNS(svg.namespaceURI, 'text');
@@ -204,10 +181,34 @@ class Node{
         this.isPlace = !element.isTrans;
         this.xCoordinate = (column + 1) * distance;
         this.yCoordinate = (row + 1) * distance;
+        this.outgoingArrows = [];
+        this.incomingArrows = [];
     }
 
     drawNode(svg){
         this.vizNode = this.isPlace ? addPlace(this, svg) : addRect(this, svg)
+    }
+
+    addOutgoingArrow(arrow){
+        this.outgoingArrows.push(arrow);
+    }
+
+    addIncomingArrow(arrow){
+        this.incomingArrows.push(arrow);
+    }
+
+    highlight(){
+        this.vizNode.setAttribute('fill', 'red')
+        this.outgoingArrows.forEach(arrow => arrow.highlight("green"));
+        this.incomingArrows.forEach(arrow => arrow.highlight("red"));
+        state.svg.appendChild(this.element);
+    }
+
+
+    unhighlight(){
+        this.vizNode.setAttribute('fill', 'black')
+        this.outgoingArrows.forEach(arrow => arrow.unhighlight());
+        this.incomingArrows.forEach(arrow => arrow.unhighlight());
     }
 
     getBottomConnection(){
@@ -240,7 +241,7 @@ class Node{
             x = parseInt(this.vizNode.getAttribute('cx'))+8;
             y = parseInt(this.vizNode.getAttribute('cy'));
         } else {
-            x = parseInt(this.vizNode.getAttribute('x'));
+            x = parseInt(this.vizNode.getAttribute('x')) + 18;
             y = parseInt(this.vizNode.getAttribute('y')) + 17;
         }
         return {x: x, y: y};
@@ -252,7 +253,7 @@ class Node{
             x = parseInt(this.vizNode.getAttribute('cx')) - 8;
             y = parseInt(this.vizNode.getAttribute('cy'));
         } else {
-            x = parseInt(this.vizNode.getAttribute('x')) + 18;
+            x = parseInt(this.vizNode.getAttribute('x'));
             y = parseInt(this.vizNode.getAttribute('y')) + 17;
         }
         return {x: x, y: y};
@@ -288,6 +289,118 @@ class Node{
 
 }
 
+class Arrow {
+    constructor(startNode, targetNode, svg){
+        this.startNode = startNode;
+        this.targetNode = targetNode;
+        this.svg = svg;
+        targetNode.addIncomingArrow(this);
+        startNode.addOutgoingArrow(this);
+        
+        this. arrowViz = Arrow.drawArrow(startNode, targetNode, svg);
+    }
+
+    highlight(color){
+        this.arrowViz.querySelectorAll('line, polygon').forEach(elem => {
+            elem.setAttribute('stroke', color);
+            elem.setAttribute('fill', color);
+        });
+        this.svg.appendChild(this.arrowViz);
+    }
+    unhighlight(){
+        this.arrowViz.querySelectorAll('line, polygon').forEach(elem => {
+            elem.setAttribute('stroke', 'black');
+            elem.setAttribute('fill', 'black');
+        });
+    }
+
+    static drawArrow(startNode, targetNode,svg){
+        let startCoord;
+        let targetCoord;
+        if(startNode.row >= targetNode.row){
+            if(startNode.column == targetNode.column){
+                startCoord = startNode.getBottomConnection();
+                targetCoord = targetNode.getTopConnection();
+            } else if (startNode.column >= targetNode.column){
+                startCoord = startNode.getLeftConnection();
+                targetCoord = targetNode.getTopConnection();
+            } else {
+                startCoord = startNode.getRightConnection();
+                targetCoord = targetNode.getTopConnection();
+            }
+        } else {
+            if(startNode.column == targetNode.column){
+                startCoord = startNode.getTopConnection();
+                targetCoord = targetNode.getBottomConnection();
+            } else if (startNode.column >= targetNode.column){
+                startCoord = startNode.getLeftConnection();
+                targetCoord = targetNode.getBottomConnection();
+            } else {
+                startCoord = startNode.getRightConnection();
+                targetCoord = targetNode.getBottomConnection();
+            }
+        }
+
+        let x1 = startCoord.x; 
+        let y1 = startCoord.y; 
+        let x2 = targetCoord.x;
+        let y2 = targetCoord.y;
+
+
+        // Horizontal line
+        const group = document.createElementNS(svg.namespaceURI, 'g')
+        const hLine = document.createElementNS(svg.namespaceURI, 'line');
+        hLine.setAttribute('x1', x1);
+        hLine.setAttribute('y1', y1);
+        hLine.setAttribute('x2', x2);
+        hLine.setAttribute('y2', y1);
+        hLine.setAttribute('stroke', 'black');
+        hLine.setAttribute('stroke-width', 2);
+
+        // Vertical line
+        const vLine = document.createElementNS(svg.namespaceURI, 'line');
+        vLine.setAttribute('x1', x2);
+        vLine.setAttribute('y1', y1);
+        vLine.setAttribute('x2', x2);
+        vLine.setAttribute('y2', y2);
+        vLine.setAttribute('stroke', 'black');
+        vLine.setAttribute('stroke-width', 2);
+
+        group.appendChild(hLine);
+        group.appendChild(vLine);
+
+        const arrowheadLength = 10;
+        let angle;
+        if (y2 > y1) {
+            angle = Math.PI/2;  // pointing downwards
+        } else if (y2 < y1) {
+            angle = -Math.PI/2;  // pointing upwards
+        } else if (x2 > x1) {
+            angle = 0;  // pointing right
+        } else {
+            angle = Math.PI;  // pointing left
+        }
+        
+        const arrowheadX1 = x2 - arrowheadLength * Math.cos(angle - Math.PI/6);  
+        const arrowheadY1 = y2 - arrowheadLength * Math.sin(angle - Math.PI/6);
+
+        const arrowheadX2 = x2 - arrowheadLength * Math.cos(angle + Math.PI/6);  
+        const arrowheadY2 = y2 - arrowheadLength * Math.sin(angle + Math.PI/6);
+
+        const arrowhead = document.createElementNS(svg.namespaceURI, 'polygon');
+        arrowhead.setAttribute('points', `${x2},${y2} ${arrowheadX1},${arrowheadY1} ${arrowheadX2},${arrowheadY2}`);
+        arrowhead.setAttribute('fill', 'black');
+        
+        group.appendChild(arrowhead);
+
+        svg.appendChild(group);
+
+        return group;
+    }
+
+
+} 
+
 export function updateTokens(places, markingArr){
     if(state.idNodeMap){
         places.forEach(place => {
@@ -297,3 +410,16 @@ export function updateTokens(places, markingArr){
     }
 }
 
+export function highlightTransNode(id){
+    if(state.highlightedNode != -1){
+        let prevNode = state.idNodeMap.get("T" + state.highlightedNode);
+        if(prevNode){
+            prevNode.unhighlight();
+        }
+    }
+    state.highlightedNode = id;
+    let transNode = state.idNodeMap.get("T" + id);
+    if(transNode){
+        transNode.highlight();
+    }
+}

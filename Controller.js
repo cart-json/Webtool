@@ -1,9 +1,10 @@
 import { parse, unparseToPNML} from "./parsing.js";
-import { vizPetriNet, updateTokens } from "./visulization.js";
+import { vizPetriNet, updateTokens, highlightTransNode } from "./visulization.js";
 import { Analysis } from "./analysis.js"
-import { vizMarkingTable } from "./marking-table.js"
+import { vizMarkingTable, highlightTransColumn } from "./marking-table.js"
 import {vizProperties} from "./properties.js"
-import {loadConsole, readConsole, addTrans, addPlace, addEdge} from "./console.js"
+import {loadConsole, readConsole, addTrans, addPlace, addEdge, clearConsole, highlightTransConsole} from "./console.js"
+import {vizTransitionLabels, highlightTransLabel} from "./labels.js"
 
 
 let state = {}
@@ -42,11 +43,18 @@ document.getElementById("fileUpload").addEventListener("change", function() {
 
 document.getElementById("console_go").onclick = function(){
     analyzeInput(readConsole());
+    if(state.highlighted_trans !== undefined){
+        highlightTransition(state.highlighted_trans);
+    }
+}
+
+document.getElementById("console_clear").onclick = function(){
+    clearConsole();
 }
 
 document.getElementById("console_save").onclick = function(){
 
-    let petriNet = readConsole;
+    let petriNet = readConsole();
 
     const content = unparseToPNML(petriNet.transitions, petriNet.places)
 
@@ -58,29 +66,22 @@ document.getElementById("console_save").onclick = function(){
     a.click();
 }
 
-function analyzeInput(petriNet){
-    let netType = document.getElementById('netType').checked;
-    if(netType != petriNet.weights){
-        switchToPTNet();
-        netType = true;
-    }
-    netType = document.getElementById('netType').checked;
+export function analyzeInput(petriNet){
     state.petriNet = petriNet;
     let places = petriNet.places;
     let transitions = petriNet.transitions;
-    let analysis = new Analysis(places, transitions, netType)
+    let analysis = new Analysis(petriNet)
 
     state.anaResult = analysis.analyse()
     let markings = state.anaResult.markings
 
     state.uncoveredMarkingIDs = new Set()
-    vizPetriNet(places.concat(transitions));
 
     if(state.anaResult.fullyConnected){
+        vizPetriNet(places.concat(transitions), highlightTransition);
     }
     vizProperties(state.anaResult, state.uncoveredMarkingIDs)
     vizMarkingTable(markings, places, transitions, state.anaResult.liveness, state.anaResult.loops)
-    
     vizTransitionLabels(transitions);
 }
 
@@ -97,20 +98,6 @@ export function vizMarkingInSVGNet(marking){
     }
 }
 
-function vizTransitionLabels(transitions){
-    let labels = document.getElementById("labels");
-    labels.innerHTML = "";
-    transitions.forEach(trans => {
-        labels.appendChild(document.createTextNode(trans.id + " ... " + trans.label))
-        labels.appendChild(document.createElement("br"))
-    })
-
-}
-
-function switchToPTNet(){
-    var checkbox = document.getElementById("netType");
-    checkbox.checked = true;
-}
 
 document.getElementById("add_trans").onclick = function(){
     addTrans();
@@ -125,4 +112,14 @@ document.getElementById("add_edgeT").onclick = function(){
 }
 document.getElementById("add_edgeP").onclick = function(){
     addEdge(false);
+}
+
+export function highlightTransition(id){
+    let prev_id = state.highlighted_trans
+    state.highlighted_trans = id
+    console.log(id);
+    highlightTransNode(id);
+    highlightTransLabel(id, prev_id);
+    highlightTransColumn(id, prev_id);
+    highlightTransConsole(id);
 }
