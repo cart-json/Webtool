@@ -100,6 +100,7 @@ function hideCell(element){
 }
 
 document.getElementById("unhideButton").onclick = function() {
+    if(!state.marking_rows) return;
     for (var i = 0; i < state.marking_rows.length; i++) {
         state.marking_rows[i].unhide();
     }

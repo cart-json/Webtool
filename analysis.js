@@ -165,7 +165,7 @@ export class Analysis {
                 let knownCoverMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem <= newMarkingArr[index]))
                 if(knownCoverMarking){
                     for (let i = 0; i < knownCoverMarking.markingArr.length; i++) {
-                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i]) {
+                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i] && places[i].max == Infinity) {
                             newMarkingArr[i] = Infinity;
                         }
                     }
@@ -197,20 +197,18 @@ export class Analysis {
 
     //returning all active transition for a specific marking
     getActiveTransitions(transitions,markingArr){
-        let result;
-        if(this.isPTNet){
-            //in a PT net: all incoming places have to have more tokens than the edge weight
-            result = transitions.filter(trans => 
-                (trans.incoming.reduce((active, place)=>
-                    active && markingArr[place.index] >= trans.incomingWeights.get(place),true)))
-                
-        } else {
-            //in an EC net: all incoming places have a token, no outgoing places (that are not incoming) have a token
-            result = transitions.filter(trans => (trans.incoming
-                .reduce((active, place)=>active && markingArr[place.index] != 0,true) && trans.outgoing
-                .reduce((active,place)=> active && (markingArr[place.index] == 0 || place.outgoing.includes(trans)), true)))
-        }
-        return result 
+        return transitions.filter(trans => {
+            let incHaveTokens = trans.incoming.reduce((active, place) =>
+                active && markingArr[place.index] >= trans.incomingWeights.get(place),true);
+            let outAreNotFull = trans.outgoing.reduce((active, place) => {
+                let tokensAfterFiring = markingArr[place.index] + trans.outgoingWeights.get(place);
+                if(place.outgoing.includes(trans)){
+                    tokensAfterFiring -= trans.incomingWeights.get(place);
+                }
+                return active && tokensAfterFiring <= place.max;
+            }, true);
+            return incHaveTokens && outAreNotFull;
+        });
     }
     //transition is fired: remove tokens from the incoming places and put tokens on the outgoing place,
         //according to the edge weight

@@ -201,7 +201,7 @@ class Node{
         this.vizNode.setAttribute('fill', 'red')
         this.outgoingArrows.forEach(arrow => arrow.highlight("green"));
         this.incomingArrows.forEach(arrow => arrow.highlight("red"));
-        state.svg.appendChild(this.element);
+        state.svg.appendChild(this.vizNode);
     }
 
 

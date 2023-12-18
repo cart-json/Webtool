@@ -99,7 +99,7 @@ function parsePNML(pnmlString) {
         const weight = inscription ? parseInt(inscription, 10) : 1; // Assumes missing inscription means weight of 1
         if(!petriNet.weights && weight > 1) petriNet.weights = true;
 
-        const startIsTrans = arc.getAttribute('source').startsWith("T")
+        const startIsTrans = arc.getAttribute('source').toUpperCase().startsWith("T")
         
         petriNet.addEdge(sourceId, targetId, weight, startIsTrans);
     }

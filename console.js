@@ -181,11 +181,11 @@ class ConsolePlace{
         form.appendChild(id_wrap);
         
         form.appendChild(createTextField("init:"));
-        let input_init = createInputField(init, 20);
+        let input_init = createNumberInputField(init, 20);
         form.appendChild(input_init);
     
         form.appendChild(createTextField("max:"));
-        let input_max = createInputField(max, 20);
+        let input_max = createNumberInputField(max, 20);
         form.appendChild(input_max);
 
         function handleEnterPressed(event){
@@ -273,18 +273,18 @@ class ConsoleEdge{
     
         //text and input for the start and end id number
         form.appendChild(createTextField(startIsTrans ? "T" : "P"));
-        let input_start = createInputField(start_id, 20);
+        let input_start = createNumberInputField(start_id, 20);
         form.appendChild(input_start);
 
         form.appendChild(createTextField("->"));
 
         form.appendChild(createTextField(startIsTrans ? "P" : "T"));
-        let input_target = createInputField(target_id, 20);
+        let input_target = createNumberInputField(target_id, 20);
         form.appendChild(input_target);
     
         //text and input for the weights
         form.appendChild(createTextField("weight:"));
-        let input_weight = createInputField(weight, 20);
+        let input_weight = createNumberInputField(weight, 20);
         form.appendChild(input_weight);
 
         function load_edge(){
@@ -340,7 +340,21 @@ function createInputField(value, width){
     input.value = value;
     input.style.width = width + "px";
     return input;
+}
 
+function createNumberInputField(value, width){
+    let input = createInputField(value, width);
+    input.addEventListener('input', function(){
+        let value = parseInt(this.value)
+
+        if(isNaN(value) || value < 0){
+            this.value = '';
+        } else if(value > 99){
+            this.value = 99;
+        }
+    })
+    return input;
+    
 }
 
 function createTextField(text){

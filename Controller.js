@@ -117,7 +117,6 @@ document.getElementById("add_edgeP").onclick = function(){
 export function highlightTransition(id){
     let prev_id = state.highlighted_trans
     state.highlighted_trans = id
-    console.log(id);
     highlightTransNode(id);
     highlightTransLabel(id, prev_id);
     highlightTransColumn(id, prev_id);
