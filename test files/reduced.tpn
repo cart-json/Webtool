@@ -1,0 +1,16 @@
+-- FSP T2 P1
+-- FSP T3 P2
+-- FPP P3 P4
+-- FSP T4 P3
+place "P0" -- 0
+ init 1
+;
+place "P5" -- 1
+;
+trans "T1" -- 2
+  in
+    "P0"
+
+  out
+    "P5"
+;

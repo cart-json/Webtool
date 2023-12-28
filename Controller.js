@@ -3,18 +3,19 @@ import { vizPetriNet, updateTokens, highlightTransNode } from "./visulization.js
 import { Analysis } from "./analysis.js"
 import { vizMarkingTable, highlightTransColumn } from "./marking-table.js"
 import {vizProperties} from "./properties.js"
-import {loadConsole, readConsole, addTrans, addPlace, addEdge, clearConsole, highlightTransConsole} from "./console.js"
+import {loadConsole, readConsole, clearConsole, highlightTransConsole, reloadConsole} from "./console.js"
 import {vizTransitionLabels, highlightTransLabel} from "./labels.js"
 
 
 let state = {}
 state.uncoveredMarkingIDs = new Set()
+state.isPTNet = false;
 
 document.getElementById("fileUpload").addEventListener("change", function() {
 
     let file = document.getElementById("fileUpload").files[0]
-    var fileInput = document.getElementById('fileUpload');
-    var fileNameDisplay = document.getElementById('fileName');
+    let fileInput = document.getElementById('fileUpload');
+    let fileNameDisplay = document.getElementById('fileName');
 
     if (fileInput.files.length > 0) {
         fileNameDisplay.textContent = fileInput.files[0].name;
@@ -24,7 +25,6 @@ document.getElementById("fileUpload").addEventListener("change", function() {
     
     if (file) {
         let reader = new FileReader();
-        let filename = file.name;
         let filetype = file.name.split('.').pop(); 
         if(!(filetype === "tpn" || filetype === "pnml")){
             alert("Please upload file in \".tpn\" or \".pnml\" format");
@@ -32,14 +32,32 @@ document.getElementById("fileUpload").addEventListener("change", function() {
         }
         reader.readAsText(file, "UTF-8");
         reader.addEventListener('load', () => {
-            let petriNet = parse(reader.result, filetype);
-            loadConsole(petriNet.places, petriNet.transitions)
+            readNetType();
+            let [petriNet, errorList] = parse(reader.result, filetype, state.isPTNet);
+            if(errorList.length > 0) alert(errorList.join('\n'));
+            if(!petriNet) return;
+            if(!state.isPTNet && petriNet.isPTNet) updateNetType(true);
+            
+            loadConsole(petriNet.places, petriNet.transitions, state.isPTNet)
             analyzeInput(petriNet);
         })
     } else {
         alert("please upload file");
     }
 });
+
+document.getElementById("netType").addEventListener("change", readNetType)
+
+function readNetType(){
+    let netType_checkbox = document.getElementById("netType");
+    updateNetType(netType_checkbox.checked)
+}
+
+function updateNetType(isPTNet){
+    state.isPTNet = isPTNet;
+    reloadConsole(isPTNet);
+    //TODO Redo analysis
+}
 
 document.getElementById("console_go").onclick = function(){
     analyzeInput(readConsole());
@@ -67,12 +85,14 @@ document.getElementById("console_save").onclick = function(){
 }
 
 export function analyzeInput(petriNet){
+    console.log(petriNet);
     state.petriNet = petriNet;
     let places = petriNet.places;
     let transitions = petriNet.transitions;
     let analysis = new Analysis(petriNet)
 
     state.anaResult = analysis.analyse()
+    console.log(state.anaResult);
     let markings = state.anaResult.markings
 
     state.uncoveredMarkingIDs = new Set()
@@ -99,20 +119,6 @@ export function vizMarkingInSVGNet(marking){
 }
 
 
-document.getElementById("add_trans").onclick = function(){
-    addTrans();
-}
-
-document.getElementById("add_place").onclick = function(){
-    addPlace();
-}
-
-document.getElementById("add_edgeT").onclick = function(){
-    addEdge(true);
-}
-document.getElementById("add_edgeP").onclick = function(){
-    addEdge(false);
-}
 
 export function highlightTransition(id){
     let prev_id = state.highlighted_trans

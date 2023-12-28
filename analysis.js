@@ -165,7 +165,7 @@ export class Analysis {
                 let knownCoverMarking = markings.find(marking => marking.markingArr.every((elem, index) => elem <= newMarkingArr[index]))
                 if(knownCoverMarking){
                     for (let i = 0; i < knownCoverMarking.markingArr.length; i++) {
-                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i] && places[i].max == Infinity) {
+                        if (knownCoverMarking.markingArr[i] < newMarkingArr[i] && places[i].capacity == Infinity) {
                             newMarkingArr[i] = Infinity;
                         }
                     }
@@ -205,7 +205,7 @@ export class Analysis {
                 if(place.outgoing.includes(trans)){
                     tokensAfterFiring -= trans.incomingWeights.get(place);
                 }
-                return active && tokensAfterFiring <= place.max;
+                return active && tokensAfterFiring <= place.capacity;
             }, true);
             return incHaveTokens && outAreNotFull;
         });
@@ -420,19 +420,40 @@ export class Analysis {
         }
     
         for (let nextMarking of marking.nextMarks.values()) {
-            if (explored.includes(nextMarking.id)) {
+            if (explored.includes(nextMarking.index)) {
                 let newLoop = [marking, nextMarking]
                 //console.log(!this.loopExists(newLoop))
                 if(!this.loopExists(newLoop)){
                     this.loops.push(newLoop);
                 }
             } else {
-                this.checkForLoops(nextMarking, [...explored, marking.id]);
+                this.checkForLoops(nextMarking, [...explored, marking.index]);
             }
         }
     }
     
     analyseLoops(markings) {
+        /*let lastUpdate = new Array(length).fill(0);
+        let loops = Array.from({length}, () => new Set());
+        let previousMarks = [];
+        markings.forEach(mark => {
+            previousMarks.push(new Set(mark.index))
+        })
+
+        for(let i = 0; i < markings.length; i++){
+            markings.forEach(mark => {
+                if(lastUpdate[next.index] >= i - 1){
+                    mark.nextMarks.forEach(next => {
+                        lastUpdate[next.index] = i;
+                        let newPrevMarks = previousMarks[mark.index]
+                        let oldPrevMarks = previousMarks[next.index]
+                        next.nextMarks.forEach(next2 => {
+                            if(newPrevMarks.has(next2.index)){}
+                        })
+                    })
+                }
+            })
+        }*/
         let initialMarking = markings[0];
     
         this.checkForLoops(initialMarking, []);
