@@ -1,10 +1,10 @@
-place "P0" init 1;
-place "P1";
-place "P2";
-place "P3";
-place "P4";
+place P0 init 1;
+place P1;
+place P2;
+place P3;
+place P4;
 
-trans "T1"~"T" in "P0" out "P1";
-trans "T2"~"T" in "P0" out "P2";
-trans "T3"~"T" in "P1" out "P1", "P3";
-trans "T4"~"T" in "P2" out "P2", "P4";
+trans T1 in P0 out P1;
+trans T2 in P0 out P2;
+trans T3 in P1 out P1, P3;
+trans T4 in P2 out P2, P4;

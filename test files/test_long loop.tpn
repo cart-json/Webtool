@@ -1,4 +1,0 @@
-place "P0" init 1;
-place "P1";
-trans "T1"~"T" in "P0" out "P1";
-trans "T2"~"T" in "P1" out "P0";

@@ -1,125 +1,162 @@
 let state = {}
 
+// Main function to visualize the Petri Net
+export function vizPetriNet(components, highlightTrasition, isPTNet) {
+    // Return if there are no components to visualize
+    if(components.length == 0) return;
 
-export function vizPetriNet(petriNet, highlightTrasition) {
+    // Initialize the state of the visualization
     state.idNodeMap = new Map();
     state.grid = [];
-    let nodes = [];
-    
+    state.isPTNet = isPTNet;
     state.transOnclickFunction = highlightTrasition;
     state.highlightedNode = -1;
-    let tree = createTree(petriNet);
 
-    function addTreeNode(element, rowIndex, width){
-        if(!state.grid[rowIndex]){
-            state.grid[rowIndex] = [];
-        }
-        let column = state.grid[rowIndex].length;
+    let nodes = []; // Stores all nodes for drawing
+    let gridWidth = 0; // Tracks the width of the grid for layout
+
+    // Function to add nodes to the tree to the grid
+    function addTreeNode(element, rowIndex, width, column, treeWidth){
+        // Initialize row in grid if not existing
+        if(!state.grid[rowIndex]) state.grid[rowIndex] = new Array(treeWidth).fill("");
+
+        // Create and add the new node
         let newNode = new Node(element, column, rowIndex)
         state.grid[rowIndex][column] = newNode;
-        for(let i = column + 1; i < column + width; i++){
-            state.grid[rowIndex][i] = "";
-        }
         nodes.push(newNode)
         state.idNodeMap.set(element.id_text, newNode)
+
         return newNode;
     }
 
-    tree.forEach(treeNode => addTreeNode(treeNode.element, treeNode.depth, treeNode.width))
-    const gridWidth = state.grid.reduce((prev, row) => prev < row.length ? row.length : prev, 0)
-    state.grid.forEach(row => {
-        while(row.length < gridWidth){
-            row.push("");
-        }
-    })
+    // Process each component to create visualization trees
+    for(let component of components){
+        let [tree, treeWidth] = createTree(component);
+        let startRow = state.grid.length;
+        if(gridWidth < treeWidth) gridWidth = treeWidth;
+        // Add all tree nodes to the grid
+        tree.forEach(treeNode => addTreeNode(treeNode.element, treeNode.depth 
+            + startRow, treeNode.width, treeNode.column, gridWidth))
+    }
+
+    // Initialize the SVG element for the visualization
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     state.svg = svg;
 
-    svg.setAttribute('width', state.grid[0].length * 80 + 50)
-    svg.setAttribute('height', state.grid.length *90)
+    // Set the dimensions of the SVG based on the grid
+    svg.setAttribute('width', gridWidth * 70 + 50)
+    svg.setAttribute('height', state.grid.length *70 + 70)
 
-    nodes.forEach(node => node.drawNode(svg));
-
-    petriNet.forEach(elem => {
-        elem.outgoing.forEach(follElem => {
-            new Arrow(state.idNodeMap.get(elem.id_text), state.idNodeMap.get(follElem.id_text), elem.outgoingWeights.get(follElem), svg)
+    // Draw nodes and edges on the SVG
+    nodes.forEach(node => node.drawNode());
+    nodes.forEach(node => {
+        node.element.outgoing.forEach(follElem => {
+            new Arrow(node, state.idNodeMap.get(follElem.id_text), 
+                node.element.outgoingWeights.get(follElem))
         })
     })
-    document.getElementById("content").innerHTML = "";
-    document.getElementById("content").appendChild(svg);
-    return;
+    return svg;
 }
 
-function createTree(petriNet) {
+function createTree(component) {
+    // Initialize variables for building the tree
     let addedElems = new Set()
     let tree = [];
     let queue = [];
+    let firstRow = [];
 
+    // Function to add a treeNode to the tree at a specified depth
     function addNode(element, depth){
-        const node = {
+        const treeNode = {
             element: element,
             children: [],
             width: 1,
-            depth: depth
+            depth: depth,
+            column: 0
         };
-        tree.push(node);
-        return node;
+        tree.push(treeNode);
+        return treeNode;
     }
 
-    for (var n = 0; n < petriNet.length; n++) {
-        if (petriNet[n].incoming.length == 0) {
-            queue.push(addNode(petriNet[n], 0));
-            addedElems.add(petriNet[n]);
+    // Process initial treeNode (with no incoming edges) and add to tree
+    for (var n = 0; n < component.length; n++) {
+        if (component[n].incoming.length == 0) {
+            let treeNode = addNode(component[n], 0);
+            firstRow.push(treeNode);
+            queue.push(treeNode);
+            addedElems.add(component[n]);
         }
     };
+    // In case no initial tree nodes were found, start with the first node in the component
     if(tree.length == 0){
-        queue.push(addNode(petriNet[0], 0));
-        addedElems.add(petriNet[0]);
+        let treeNode = addNode(component[0], 0);
+        firstRow.push(treeNode);
+        queue.push(treeNode);
+        addedElems.add(component[0]);
     }
+    // BFS to build tree, adding children to each treeNode
     while (queue.length != 0) {
-        let node = queue.shift()
-        node.element.outgoing.forEach(out => {
+        let treeNode = queue.shift()
+        treeNode.element.outgoing.forEach(out => {
             if (!addedElems.has(out)) {
-                let newNode = addNode(out, node.depth + 1)
+                let newNode = addNode(out, treeNode.depth + 1)
                 queue.push(newNode);
-                node.children.push(newNode);
+                treeNode.children.push(newNode);
                 addedElems.add(out);
             }
         })
-        node.element.incoming.forEach(inc => {
+        treeNode.element.incoming.forEach(inc => {
             if (!addedElems.has(inc)) {
-                let newNode = addNode(inc, node.depth + 1)
+                let newNode = addNode(inc, treeNode.depth + 1)
                 queue.push(newNode);
-                node.children.push(newNode);
+                treeNode.children.push(newNode);
                 addedElems.add(inc);
             }
         })
     }
-
-    function calcWidth(node){
+    // Calculate recursively the width of the tree and each sub-tree
+    function calcWidth(treeNode){
         let result;
-
-        if(node.children.length == 0){
+        if(treeNode.children.length == 0){
             result = 1;
         } else {
-            result = node.children.reduce((a,childNode) => a + calcWidth(childNode), 0)
+            result = treeNode.children.reduce((a,childNode) => a + calcWidth(childNode), 0);
         }
-        node.width = result;
+        treeNode.width = result;
         return result;
     }
-    calcWidth(tree[0]);
 
-    tree.forEach(node => {
-        if(node.parent === null){
-            calcWidth(node);
+    // Calculate recursively the column positions of each treeNode
+    function calcColumn(treeNode){
+        for(let i = 0; i < treeNode.children.length; i++){
+            if(i == 0){
+                treeNode.children[i].column = treeNode.column;
+            } else {
+                treeNode.children[i].column = treeNode.children[i-1].width 
+                    + treeNode.children[i-1].column;
+            }
+            calcColumn(treeNode.children[i]);
         }
-    })
+    }
+    // Calculate columns for the whole tree
+    for(let i = 0; i < firstRow.length; i++){
+        calcWidth(firstRow[i]);
+        if(i > 0)
+            firstRow[i].column = firstRow[i - 1].width + firstRow[i - 1].column;
+        calcColumn(firstRow[i]);
+    }
 
-    return tree;
+    // Calculate the total width required for the tree
+    let treeWidth = firstRow.reduce((sum, treeNode) => sum + treeNode.width, 0)
+
+    // Return the constructed tree and its required width
+    return [tree, treeWidth];
 }
 
-function addRect(node, svg) {
-    var rect = document.createElementNS(svg.namespaceURI, 'rect');
+// Function to add a rectangle (representing a transition) to the SVG
+function addRect(node) {
+    // Add rectangle
+    var rect = document.createElementNS(state.svg.namespaceURI, 'rect');
     const height = 34;
     const width = 18;
     rect.setAttribute('id', node.element.id_text);
@@ -131,24 +168,19 @@ function addRect(node, svg) {
     rect.setAttribute('stroke', 'black');
     rect.setAttribute('stroke-width', 2);
     rect.onclick = function(){state.transOnclickFunction(node.element.id);};
-    svg.appendChild(rect)
+    state.svg.appendChild(rect)
 
-    var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = node.element.id_text;
-    label.setAttribute('x', node.xCoordinate + 18);
-    label.setAttribute('y', node.yCoordinate - 20);
-    label.setAttribute('fill', 'black');
-    label.setAttribute('font-family', 'Arial');
-    label.setAttribute('font-size', '12');
-    label.setAttribute('text-anchor', 'middle');
-    svg.appendChild(label)
+    // Add label
+    addText(node.element.id_text, node.xCoordinate + 18, node.yCoordinate - 20)
 
     return rect;
 }
 
+// Function to add a circle (representing a place) to the SVG
+function addPlace(node) {
 
-function addPlace(node, svg) {
-    var circle = document.createElementNS(svg.namespaceURI, 'circle');
+    // Add circle
+    var circle = document.createElementNS(state.svg.namespaceURI, 'circle');
     circle.setAttribute('id', node.element.id_text);
     circle.setAttribute('r', 8);
     circle.setAttribute('cx', node.xCoordinate);
@@ -156,27 +188,37 @@ function addPlace(node, svg) {
     circle.setAttribute('fill', '#ffffff');
     circle.setAttribute('stroke', 'black');
     circle.setAttribute('stroke-width', 2);
-    svg.appendChild(circle)
+    state.svg.appendChild(circle)
 
-    var label = document.createElementNS(svg.namespaceURI, 'text');
-    label.textContent = node.element.id_text;
-    label.setAttribute('x', node.xCoordinate + 18);
-    label.setAttribute('y', node.yCoordinate - 8);
+    // Add label for the place
+    addText(node.element.id_text, node.xCoordinate + 18, node.yCoordinate - 8)
+
+    return circle;
+}
+
+// Function to add text to the svg at a specific position (x, y)
+function addText(text, x, y){
+    var label = document.createElementNS(state.svg.namespaceURI, 'text');
+    label.textContent = text;
+    label.setAttribute('x', x);
+    label.setAttribute('y', y);
     label.setAttribute('fill', 'black');
     label.setAttribute('font-family', 'Arial');
     label.setAttribute('font-size', '12');
     label.setAttribute('text-anchor', 'middle');
-    svg.appendChild(label)
-    return circle;
+    state.svg.appendChild(label);
 }
 
+// Class definition for Node
 class Node{
+    // Initialize necessary attributes
     constructor(element, column, row){
         const distance = 70;
         this.element = element;
         this.column = column;
         this.row = row;
         this.isPlace = !element.isTrans;
+        //calculate Position
         this.xCoordinate = (column + 1) * distance;
         this.yCoordinate = (row + 1) * distance;
         this.outgoingArrows = [];
@@ -184,8 +226,23 @@ class Node{
         this.width = 1;
     }
 
-    drawNode(svg){
-        this.vizNode = this.isPlace ? addPlace(this, svg) : addRect(this, svg)
+    // Function to draw the node on the SVG
+    drawNode(){
+        this.vizNode = this.isPlace ? addPlace(this) : addRect(this)
+
+        // Add token count if the node is a place and has a finite capacity
+            // and the net is an P/T net
+        if(this.isPlace && state.isPTNet && this.element.capacity != Infinity){
+            let capaText = document.createElementNS(state.svg.namespaceURI, "text");
+            capaText.setAttribute('id', this.element.id + "capa");
+            capaText.setAttribute("x", this.xCoordinate - 8);
+            capaText.setAttribute("y", this.yCoordinate - 8);
+            capaText.setAttribute("fill", "black");
+            capaText.textContent = this.element.capacity;    
+            capaText.setAttribute('text-anchor', 'end');
+            capaText.style.fontSize = '13px';
+            state.svg.appendChild(capaText); 
+        }
     }
 
     addOutgoingArrow(arrow){
@@ -196,6 +253,7 @@ class Node{
         this.incomingArrows.push(arrow);
     }
 
+    // Function that changes the color of the node and the connected arrows
     highlight(){
         this.vizNode.setAttribute('fill', 'red')
         this.outgoingArrows.forEach(arrow => arrow.highlight("green"));
@@ -203,13 +261,17 @@ class Node{
         state.svg.appendChild(this.vizNode);
     }
 
-
+    // Function that turns the node and the connected arrows to the initial color
     unhighlight(){
         this.vizNode.setAttribute('fill', 'black')
         this.outgoingArrows.forEach(arrow => arrow.unhighlight());
         this.incomingArrows.forEach(arrow => arrow.unhighlight());
     }
 
+    // Function return the coordinates of the nodes connection Points
+    // An arrow can connect to the right, left, bottom or top of the node
+    // 'diff' is a value dependent if the arrow is incoming or outgoing
+        //this makes it easier to visualise the arrows
     getBottomConnection(diff){
         let x, y;
         if(this.isPlace){
@@ -258,40 +320,56 @@ class Node{
         return {x: x, y: y + diff};
     }
 
+    // Function that adds or removes tokens from a place
     addTokens(numberOfTokens){
         let tokenCircle = state.svg.getElementById(this.element.id + "tkn");
+        let tokenText = state.svg.getElementById(this.element.id + "txt");
         if(tokenCircle){
             state.svg.removeChild(tokenCircle);
         }
-        if(numberOfTokens > 1){
-            let newText = document.createElementNS(state.svg.namespaceURI, "text");
-            newText.setAttribute('id', this.element.id + "tkn");
-            newText.setAttribute("x", this.xCoordinate - 4);      // Set the x position
-            newText.setAttribute("y", this.yCoordinate + 4);      // Set the y position
-            newText.setAttribute("fill", "black"); // Set the fill color
-            newText.textContent = numberOfTokens;    
-            newText.style.fontSize = '12px';    // Set the text content
-            state.svg.appendChild(newText); 
-
-        } else if(numberOfTokens == 1){
+        if(tokenText){
+            state.svg.removeChild(tokenText);
+        }
+        const createToken = () => {
             let tokenCircle = document.createElementNS(state.svg.namespaceURI, 'circle');
             tokenCircle.setAttribute('id', this.element.id + "tkn");
             tokenCircle.setAttribute('r', 4);
             tokenCircle.setAttribute('cx', this.xCoordinate);
             tokenCircle.setAttribute('cy', this.yCoordinate);
             tokenCircle.setAttribute('fill', 'black');
-            state.svg.appendChild(tokenCircle)
+            return tokenCircle;
+        }
+        // How the number of Tokens is visualized depends on how many tokens should be added
+        if(numberOfTokens > 9){
+            state.svg.appendChild(createToken());
+            let newText = document.createElementNS(state.svg.namespaceURI, "text");
+            newText.setAttribute('id', this.element.id + "txt");
+            newText.setAttribute("x", this.xCoordinate + 8); 
+            newText.setAttribute("y", this.yCoordinate + 18);
+            newText.setAttribute("fill", "black");
+            newText.textContent = numberOfTokens == Infinity ? "ω" : numberOfTokens;    
+            newText.style.fontSize = '13px';
+            state.svg.appendChild(newText); 
+
+        } else if(numberOfTokens > 1){
+            let newText = document.createElementNS(state.svg.namespaceURI, "text");
+            newText.setAttribute('id', this.element.id + "txt");
+            newText.setAttribute("x", this.xCoordinate - 4);
+            newText.setAttribute("y", this.yCoordinate + 5);
+            newText.setAttribute("fill", "black");
+            newText.textContent = numberOfTokens;    
+            newText.style.fontSize = '13px';
+            state.svg.appendChild(newText); 
+        } else if(numberOfTokens == 1){
+            state.svg.appendChild(createToken());
         }
         
     }
 
 
 }
-//horizontalLineIsFree checks if there are now elements in a specific grid row intervall
-//"y" indicates which row, "from" and "to" indicate the intervall
-//"offset" defines if if the first cell or the last cell should in the given intevall should be ignored
-//this is neccessary, because the first or last element is either the start or the target
-//the offset is either 0 or 1, depending if the last or the first element should be ignored
+
+// Function to check if a horizontal line segment in the grid is free
 function horizontalLineIsFree(y,from, to, offset){
     if (from > to) {
         [from, to] = [to, from];
@@ -305,6 +383,7 @@ function horizontalLineIsFree(y,from, to, offset){
     return true;
 }
 
+// Function to check if a vertical line segment in the grid is free
 function verticalLineIsFree(x,from, to, offset){
     if (from > to) {
         [from, to] = [to, from];
@@ -319,25 +398,30 @@ function verticalLineIsFree(x,from, to, offset){
     return true;
 }
 
+// Class definition for Arrow
 class Arrow {
-    constructor(startNode, targetNode, weight, svg){
+    // Initialize necessary attributes
+    constructor(startNode, targetNode, weight){
         this.startNode = startNode;
         this.targetNode = targetNode;
         this.weight = weight;
-        this.svg = svg;
+        // Add arrow to the respective lists of the connected nodes
         targetNode.addIncomingArrow(this);
         startNode.addOutgoingArrow(this);
-        
-        this.arrowViz = Arrow.drawArrow(startNode, targetNode, weight, svg);
+        // Draw the arrow and store its visualization
+        this.arrowViz = Arrow.drawArrow(startNode, targetNode, weight);
     }
 
+    // Function that changes the color of the arrow
     highlight(color){
         this.arrowViz.querySelectorAll('line, polygon, text').forEach(elem => {
             elem.setAttribute('stroke', color);
             elem.setAttribute('fill', color);
         });
-        this.svg.appendChild(this.arrowViz);
+        state.svg.appendChild(this.arrowViz);
     }
+
+    // Function that turns the node and the connected arrows to the initial color
     unhighlight(){
         this.arrowViz.querySelectorAll('line, polygon, text').forEach(elem => {
             elem.setAttribute('stroke', 'black');
@@ -345,115 +429,127 @@ class Arrow {
         });
     }
 
-    static drawArrow(startNode, targetNode, weight, svg){
-        let startCoord;
-        let targetCoord;
+    // Static method to draw an arrow between two nodes
+    static drawArrow(startNode, targetNode, weight){
+        let coord1;
+        let coord2;
         let angle;
         //is <0 if goes down, >0 if goes up
-        let verticalDiff = startNode.row - targetNode.row;
+        let vertDiff = startNode.row - targetNode.row;
         //is <0 if goes left, >0 if goes right
-        let horizontalDiff = targetNode.column - startNode.column;
+        let horiDiff = targetNode.column - startNode.column;
 
-        const group = document.createElementNS(svg.namespaceURI, 'g')
+        const group = document.createElementNS(state.svg.namespaceURI, 'g')
 
-        //check if horizontal-vertical is free
+        //check if the horizontal-vertical path is free
         if(horizontalLineIsFree(startNode.row, startNode.column, targetNode.column, 1) &&
             verticalLineIsFree(targetNode.column, startNode.row, targetNode.row, 0)){
-                //draw path
-                if(verticalDiff >= 0){
-                    targetCoord = targetNode.getBottomConnection(-3);
+                // The connection points to the nodes are calculated
+                if(vertDiff >= 0){
+                    coord2 = targetNode.getBottomConnection(-3);
                     angle = -Math.PI/2;  // pointing upwards
-                    if(horizontalDiff == 0){
-                        startCoord = startNode.getTopConnection(-3);
-                    } else if(horizontalDiff < 0){
-                        startCoord = startNode.getLeftConnection(3);
+                    if(horiDiff == 0){
+                        coord1 = startNode.getTopConnection(-3);
+                    } else if(horiDiff < 0){
+                        coord1 = startNode.getLeftConnection(3);
                     } else {
-                        startCoord = startNode.getRightConnection(-3);
+                        coord1 = startNode.getRightConnection(-3);
                     }
                 } else {
-                    targetCoord = targetNode.getTopConnection(3);
+                    coord2 = targetNode.getTopConnection(3);
                     angle = Math.PI/2;  // pointing downwards
-                    if(horizontalDiff == 0){
-                        startCoord = startNode.getBottomConnection(3);
-                    } else if(horizontalDiff < 0){
-                        startCoord = startNode.getLeftConnection(3);
+                    if(horiDiff == 0){
+                        coord1 = startNode.getBottomConnection(3);
+                    } else if(horiDiff < 0){
+                        coord1 = startNode.getLeftConnection(3);
                     } else {
-                        startCoord = startNode.getRightConnection(-3);
+                        coord1 = startNode.getRightConnection(-3);
                     }
                 }
 
-                group.appendChild(this.drawLine(startCoord.x, startCoord.y, targetCoord.x, startCoord.y));
-                group.appendChild(this.drawLine(targetCoord.x, startCoord.y, targetCoord.x, targetCoord.y));
-                if(weight != 1) group.appendChild(this.addWeight(targetCoord.x, (startCoord.y + targetCoord.y) /2 + 7 * Math.sign(horizontalDiff), weight));
-                
+                // Horizontal and vertical line are drawn 
+                group.appendChild(this.drawLine(coord1.x, coord1.y, coord2.x, coord1.y));
+                group.appendChild(this.drawLine(coord2.x, coord1.y, coord2.x, coord2.y));
+                // The weight is visualized if its above 1
+                if(weight != 1) group.appendChild(this.addWeight(coord2.x - 5 * Math.sign(vertDiff), (coord1.y + coord2.y) /2 + 7 * Math.sign(horiDiff), weight, vertDiff>0));
+
+        //check if the vertical-horizontal path is free
         } else if (verticalLineIsFree(startNode.column, startNode.row, targetNode.row, 1) &&
         horizontalLineIsFree(targetNode.row, startNode.column, targetNode.column, 0)){
-            if(verticalDiff >= 0){
-                startCoord = startNode.getTopConnection(-3);
-                if(horizontalDiff == 0){
-                    targetCoord = targetNode.getBottomConnection(-3);
+            // The connection points to the nodes are calculated
+            if(vertDiff >= 0){
+                coord1 = startNode.getTopConnection(-3);
+                if(horiDiff == 0){
+                    coord2 = targetNode.getBottomConnection(-3);
                     angle = -Math.PI/2;  // pointing upwards
-                } else if(horizontalDiff < 0){
-                    targetCoord = targetNode.getRightConnection(3);
+                } else if(horiDiff < 0){
+                    coord2 = targetNode.getRightConnection(3);
                     angle = Math.PI;  // pointing left
                 } else {
-                    targetCoord = targetNode.getLeftConnection(-3);
+                    coord2 = targetNode.getLeftConnection(-3);
                     angle = 0;  // pointing right
                 }
             } else {
-                startCoord = startNode.getBottomConnection(3);
-                if(horizontalDiff == 0){
-                    targetCoord = targetNode.getTopConnection(3);
+                coord1 = startNode.getBottomConnection(3);
+                if(horiDiff == 0){
+                    coord2 = targetNode.getTopConnection(3);
                     angle = -Math.PI/2;  // pointing upwards
-                } else if(horizontalDiff < 0){
-                    targetCoord = targetNode.getRightConnection(3);
+                } else if(horiDiff < 0){
+                    coord2 = targetNode.getRightConnection(3);
                     angle = Math.PI;  // pointing left
                 } else {
-                    targetCoord = targetNode.getLeftConnection(-3);
+                    coord2 = targetNode.getLeftConnection(-3);
                     angle = 0;  // pointing right
                 }
             }
-            group.appendChild(this.drawLine(startCoord.x, startCoord.y, startCoord.x, targetCoord.y));
-            group.appendChild(this.drawLine(startCoord.x, targetCoord.y, targetCoord.x, targetCoord.y));
-            if(weight != 1) group.appendChild(this.addWeight(startCoord.x, (startCoord.y + targetCoord.y)/2 + 7 * Math.sign(horizontalDiff), weight));
+            // Horizontal and vertical line are drawn 
+            group.appendChild(this.drawLine(coord1.x, coord1.y, coord1.x, coord2.y));
+            group.appendChild(this.drawLine(coord1.x, coord2.y, coord2.x, coord2.y));
+            // The weight is visualized if its above 1
+            if(weight != 1) group.appendChild(this.addWeight(coord1.x - 5 * Math.sign(vertDiff), (coord1.y + coord2.y)/2 + 7 * Math.sign(horiDiff), weight, vertDiff>0));
         
-            
         } else {
-            if(verticalDiff >= 0){
-                startCoord = startNode.getTopConnection(-3);
-                if(horizontalDiff == 0){
-                    targetCoord = targetNode.getBottomConnection(-3);
-                } else if(horizontalDiff < 0){
-                    targetCoord = targetNode.getRightConnection(3);
+            // The connection points to the nodes are calculated
+            if(vertDiff >= 0){
+                coord1 = startNode.getTopConnection(-3);
+                if(horiDiff == 0){
+                    coord2 = targetNode.getBottomConnection(-3);
+                } else if(horiDiff < 0){
+                    coord1 = startNode.getLeftConnection(3);
+                    coord2 = targetNode.getRightConnection(3);
                 } else {
-                    targetCoord = targetNode.getLeftConnection(-3);
+                    coord1 = startNode.getRightConnection(-3);
+                    coord2 = targetNode.getLeftConnection(-3);
                 }
             } else {
-                startCoord = startNode.getBottomConnection(3);
-                if(horizontalDiff == 0){
-                    targetCoord = targetNode.getTopConnection(3);
-                } else if(horizontalDiff < 0){
-                    targetCoord = targetNode.getRightConnection(3);
+                coord1 = startNode.getBottomConnection(3);
+                if(horiDiff == 0){
+                    coord2 = targetNode.getTopConnection(3);
+                } else if(horiDiff < 0){
+                    coord1 = startNode.getLeftConnection(3);
+                    coord2 = targetNode.getRightConnection(3);
                 } else {
-                    targetCoord = targetNode.getLeftConnection(-3);
+                    coord1 = startNode.getRightConnection(-3);
+                    coord2 = targetNode.getLeftConnection(-3);
                 }
             }
-            angle = Math.atan2(targetCoord.y - startCoord.y, targetCoord.x - startCoord.x);
-            group.appendChild(this.drawLine(startCoord.x, startCoord.y, targetCoord.x, targetCoord.y));
+            angle = Math.atan2(coord2.y - coord1.y, coord2.x - coord1.x);
+            // Diagonal line is drawn 
+            group.appendChild(this.drawLine(coord1.x, coord1.y, coord2.x, coord2.y));
+            // The weight is visualized if its above 1
             if(weight != 1){
-                let weight_x = startCoord.x + 1/3 * (targetCoord.x - startCoord.x) - 5;
-                let weight_y = startCoord.y + 1/3 * (targetCoord.y - startCoord.y) - 5;
-                group.appendChild(this.addWeight(weight_x, weight_y, weight));
+                let weight_x = coord1.x + 2/5 * (coord2.x - coord1.x) - 5;
+                let weight_y = coord1.y + 2/5 * (coord2.y - coord1.y) - 5;
+                group.appendChild(this.addWeight(weight_x, weight_y, weight, vertDiff>0));
             }
         }
 
-        group.appendChild(this.drawArrowHead(targetCoord, angle));
-
-        svg.appendChild(group);
-
+        group.appendChild(this.drawArrowHead(coord2, angle));
+        state.svg.appendChild(group);
         return group;
     }
 
+    // Static method to draw a line as part of an arrow
     static drawLine(x1, y1, x2, y2){
         const line = document.createElementNS(state.svg.namespaceURI, 'line');
         line.setAttribute('x1', x1);
@@ -464,7 +560,7 @@ class Arrow {
         line.setAttribute('stroke-width', 2);
         return line;
     }
-
+    // Static method to draw the arrowhead
     static drawArrowHead(coords, angle){
         const arrowheadLength = 10;
         
@@ -481,20 +577,25 @@ class Arrow {
 
     }
 
-    static addWeight(x, y, weight){
+    static addWeight(x, y, weight, goingUp){
         let weightText = document.createElementNS(state.svg.namespaceURI, 'text');
+        if(goingUp){
+            weightText.setAttribute('text-anchor', 'end');
+        } else {
+            weightText.setAttribute('text-anchor', 'start');
+        }
         weightText.textContent = weight;
-        weightText.setAttribute('x', x + 5);
+        console.log(goingUp);
+        weightText.setAttribute('x', x);
         weightText.setAttribute('y', y);
         weightText.setAttribute('fill', 'black');
         weightText.setAttribute('font-family', 'Arial');
         weightText.setAttribute('font-size', '10');
         weightText.setAttribute('stroke', 'black');
-        weightText.setAttribute('text-anchor', 'middle');
         return weightText;
     }
 } 
-
+// Function visualizes the tokens described in "markingArr" in the svg
 export function updateTokens(places, markingArr){
     if(state.idNodeMap){
         places.forEach(place => {
@@ -504,7 +605,9 @@ export function updateTokens(places, markingArr){
     }
 }
 
+// Function highlights a transition in the svg and unhighlights the previous one
 export function highlightTransNode(id){
+    // If a node is highlighted it gets unhighlighted
     if(state.highlightedNode != -1){
         let prevNode = state.idNodeMap.get("T" + state.highlightedNode);
         if(prevNode){

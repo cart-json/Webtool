@@ -7,10 +7,10 @@
                     <text>P0</text>
                 </name>
                 <initialMarking>
-                    <text>1</text>
+                    <text>9</text>
                 </initialMarking>
                 <capacity>
-                    <text>1</text>
+                    <text>-1</text>
                 </capacity>
             </place>
         
@@ -22,7 +22,7 @@
                     <text>0</text>
                 </initialMarking>
                 <capacity>
-                    <text>1</text>
+                    <text>-1</text>
                 </capacity>
             </place>
         
@@ -34,7 +34,7 @@
                     <text>0</text>
                 </initialMarking>
                 <capacity>
-                    <text>1</text>
+                    <text>-1</text>
                 </capacity>
             </place>
         
@@ -46,7 +46,7 @@
                     <text>0</text>
                 </initialMarking>
                 <capacity>
-                    <text>1</text>
+                    <text>-1</text>
                 </capacity>
             </place>
         
@@ -58,41 +58,47 @@
                     <text>0</text>
                 </initialMarking>
                 <capacity>
-                    <text>1</text>
+                    <text>-1</text>
                 </capacity>
             </place>
         
+            <transition id="T0">
+                <name>
+                    <text></text>
+                </name>
+            </transition>
+        
             <transition id="T1">
                 <name>
-                    <text>T</text>
+                    <text></text>
                 </name>
             </transition>
         
             <transition id="T2">
                 <name>
-                    <text>T</text>
+                    <text></text>
                 </name>
             </transition>
         
             <transition id="T3">
                 <name>
-                    <text>T</text>
+                    <text></text>
                 </name>
             </transition>
         
-            <transition id="T4">
-                <name>
-                    <text>T</text>
-                </name>
-            </transition>
-        
-            <transition id="T5">
-                <name>
-                    <text>T</text>
-                </name>
-            </transition>
-        
-                <arc id="a_1_1" source="T1" target="P1">
+                <arc id="a_0_1" source="T0" target="P1">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_0_0" source="P0" target="T0">
+                    <inscription>
+                        <text>1</text>
+                    </inscription>
+                </arc>
+            
+                <arc id="a_1_2" source="T1" target="P2">
                     <inscription>
                         <text>1</text>
                     </inscription>
@@ -104,53 +110,30 @@
                     </inscription>
                 </arc>
             
-                <arc id="a_2_2" source="T2" target="P2">
+                <arc id="a_2_3" source="T2" target="P3">
                     <inscription>
                         <text>1</text>
                     </inscription>
                 </arc>
             
-                <arc id="a_1_2" source="P1" target="T2">
+                <arc id="a_0_2" source="P0" target="T2">
                     <inscription>
                         <text>1</text>
                     </inscription>
                 </arc>
             
-                <arc id="a_3_3" source="T3" target="P3">
+                <arc id="a_3_4" source="T3" target="P4">
                     <inscription>
                         <text>1</text>
                     </inscription>
                 </arc>
             
-                <arc id="a_2_3" source="P2" target="T3">
+                <arc id="a_0_3" source="P0" target="T3">
                     <inscription>
                         <text>1</text>
                     </inscription>
                 </arc>
             
-                <arc id="a_4_4" source="T4" target="P4">
-                    <inscription>
-                        <text>1</text>
-                    </inscription>
-                </arc>
-            
-                <arc id="a_2_4" source="P2" target="T4">
-                    <inscription>
-                        <text>1</text>
-                    </inscription>
-                </arc>
-            
-                <arc id="a_5_1" source="T5" target="P1">
-                    <inscription>
-                        <text>1</text>
-                    </inscription>
-                </arc>
-            
-                <arc id="a_4_5" source="P4" target="T5">
-                    <inscription>
-                        <text>1</text>
-                    </inscription>
-                </arc>
         </net>
     </pnml>
     

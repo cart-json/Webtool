@@ -18,8 +18,12 @@ export class PetriNet{
         return false;
     }
 
-    getNewPlaceID(placeString){ 
-
+    getUnusedPlaceID(){
+        for(let i = 0; i < 100; i++){
+            if(this.places.reduce((prev, place) => place.id != i && prev, true)) 
+                return i;
+        } 
+        return -1;
     }
 
     // Checks if a transition with a given ID exists in the Petri Net
@@ -34,14 +38,22 @@ export class PetriNet{
     addTrans(id, label){
         id = parseInt(id);
 
-        // Validate that id is a non-negative integer
-        if (isNaN(id) || id < 0) {
+        // Validate that id is a non-negative integer and smaller than 100
+        if (isNaN(id) || id < 0 || id > 99) {
             return null;
         }
         let transition = new Transition(id, label, this.transitions.length);
         this.transitions.push(transition);
         this.transIdMap.set(id, transition);
         return transition;
+    }
+
+    getUnusedTransID(){
+        for(let i = 0; i < 100; i++){
+            if(this.transitions.reduce((prev, trans) => trans.id != i && prev, true)) 
+                return i;
+        } 
+        return -1;
     }
 
     // Creates and adds a new Place object to the Petri Net
@@ -51,7 +63,7 @@ export class PetriNet{
         if(capacity !== Infinity) capacity = parseInt(capacity);
 
         // Validate that id is a non-negative integer
-        if (isNaN(id) || id < 0) {
+        if (isNaN(id) || id < 0 || id > 99) {
             return null;
         }
         // Validate that init is a non-negative integer
@@ -59,8 +71,11 @@ export class PetriNet{
             init = 0;
         }
         // Validate that capacity is a non-negative integer or Infinity
-        if (capacity !== Infinity || isNaN(capacity) || capacity < 0) {
+        if ((capacity !== Infinity && isNaN(capacity)) || capacity < 0) {
             capacity = this.isPTNet ? Infinity : 1;
+        }
+        if(init > capacity){
+            init = capacity;
         }
         let place = new Place(id,init,capacity,this.places.length);
         this.places.push(place);
@@ -74,14 +89,14 @@ export class PetriNet{
         target_id = parseInt(target_id);
         weight = parseInt(weight);
 
-        // Validate that the ids are a non-negative integers
-        if (isNaN(start_id) || start_id < 0 || 
-            isNaN(target_id) || target_id < 0) {
+        // Validate that the ids are a non-negative integers and smaller than 100
+        if (isNaN(start_id) || start_id < 0 || start_id > 99 ||
+            isNaN(target_id) || target_id < 0 || target_id > 99) {
             return null;
         }
 
         // Validate that weight is a non-negative integer or Infinity
-        if (isNaN(weight) || weight < 0) {
+        if (isNaN(weight) || weight <= 0) {
             weight = 1;
         }
 
@@ -112,6 +127,17 @@ export class PetriNet{
         // Setting up the connections
         start.addOutgoing(target, weight);
         target.addIncoming(start, weight);
+    }
+
+    sortElements(){
+        this.transitions = this.transitions.sort((trans1, trans2) => trans1.id > trans2.id);
+        for(let i = 0; i < this.transitions.length; i++){
+            this.transitions[i].index = i;
+        }
+        this.places = this.places.sort((place1, place2) => place1.id > place2.id);
+        for(let i = 0; i < this.places.length; i++){
+            this.places[i].index = i;
+        }
     }
 }
 

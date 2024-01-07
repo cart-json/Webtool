@@ -12,6 +12,10 @@ state.edge_id = 0;
 state.isPTNet = document.getElementById("netType").checked;
 
 export function addTrans(id){
+    if(state.trans_elements.length > 99){
+        alert("error: You can't exceed the limit of 100 transitions")
+        return;
+    }
     if(!id){
         id = getSmallesUnusedID(state.trans_id_list);
     }
@@ -19,6 +23,10 @@ export function addTrans(id){
     state.trans_elements.push(new ConsoleTrans(id, ""))
 }
 export function addPlace(id){
+    if(state.place_elements.length > 99){
+        alert("error: You can't exceed the limit of 100 places")
+        return;
+    }
     if(!id){
         id = getSmallesUnusedID(state.place_id_list);
     }
@@ -48,8 +56,6 @@ export function readConsole(){
         let [start_id, target_id, weight] = edge.getValues();
         petriNet.addEdge(start_id, target_id, weight, edge.startIsTrans);
     })
-    //console.log(state.trans_elements);
-    //console.log(state.place_elements);
     return petriNet;
 }
 
@@ -122,7 +128,7 @@ class ConsoleTrans{
      
         let form = document.createElement("form");
         form.classList.add("console_element");
-        form.style.width = "250px";
+        form.style.width = "300px";
 
         let id_wrap = createTextField("T" + id);
         id_wrap.classList.add("id_wrap");
@@ -130,7 +136,7 @@ class ConsoleTrans{
 
         form.appendChild(createTextField("Label:"));
 
-        let input = createInputField(label, 100)
+        let input = createInputField(label, 190)
         form.appendChild(input);
         translist.appendChild(form);
         
@@ -138,9 +144,9 @@ class ConsoleTrans{
             if(event.key === "Enter"){
                 event.preventDefault();
                 if(event.ctrlKey){
-                    analyzeInput(readConsole());
-                } else {
                     addTrans();
+                } else {
+                    analyzeInput(readConsole());
                 }
             }
         }
@@ -195,7 +201,7 @@ class ConsolePlace{
         form.appendChild(id_wrap);
         
         form.appendChild(createTextField("init:"));
-        let input_init = createNumberInputField(init, 20);
+        let input_init = createNumberInputField(init, 20, 0, 9);
         form.appendChild(input_init);
 
 
@@ -203,9 +209,9 @@ class ConsolePlace{
             if(event.key === "Enter"){
                 event.preventDefault();
                 if(event.ctrlKey){
-                    analyzeInput(readConsole());
+                    addPlace();
                 } else {
-                addPlace();
+                    analyzeInput(readConsole());
                 }
             }
         }
@@ -214,7 +220,7 @@ class ConsolePlace{
         let input_bounded;
 
         if(state.isPTNet){
-            input_capacity = createNumberInputField(capacity, 20);
+            input_capacity = createNumberInputField(capacity, 20, 0, 9);
             let input_capacity_text = createTextField("max:");
 
             function handleCheckboxChange(event){
@@ -321,16 +327,16 @@ class ConsoleEdge{
     
         //text and input for the start and end id number
         form.appendChild(createTextField(startIsTrans ? "T" : "P"));
-        let input_start = createNumberInputField(start_id, 20);
+        let input_start = createNumberInputField(start_id, 20, 0, 99);
         form.appendChild(input_start);
 
         form.appendChild(createTextField("->"));
 
         form.appendChild(createTextField(startIsTrans ? "P" : "T"));
-        let input_target = createNumberInputField(target_id, 20);
+        let input_target = createNumberInputField(target_id, 20, 0, 99);
         form.appendChild(input_target);
 
-        let input_weight = createNumberInputField(weight, 20);
+        let input_weight = createNumberInputField(weight, 20, 1, 9);
         if(state.isPTNet){
             //text and input for the weights
             form.appendChild(createTextField("weight:"));
@@ -361,9 +367,9 @@ class ConsoleEdge{
             if(event.key === "Enter"){
                 event.preventDefault();
                 if(event.ctrlKey){
-                    analyzeInput(readConsole());
-                } else {
                     load_edge();
+                } else {
+                    analyzeInput(readConsole());
                 }
             }
         }
@@ -392,19 +398,18 @@ function createInputField(value, width){
     return input;
 }
 
-function createNumberInputField(value, width){
+function createNumberInputField(value, width, min, max){
     let input = createInputField(value, width);
     input.addEventListener('input', function(){
         let value = parseInt(this.value)
 
-        if(isNaN(value) || value < 0){
+        if(isNaN(value) || value < min){
             this.value = '';
-        } else if(value > 99){
-            this.value = 99;
+        } else if(value > max){
+            this.value = max;
         }
     })
     return input;
-    
 }
 
 function createTextField(text){

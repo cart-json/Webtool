@@ -10,7 +10,6 @@ export function vizProperties(anaResult, uncoveredMarkings){
     props.appendChild(document.createElement("br"))
     props.appendChild(document.createTextNode("strSoundness: " + anaResult.strSoundness))
     props.appendChild(document.createElement("br"))
-
 }
 
 function createDeadlockLine(deadlockList, uncoveredMarkings){
@@ -23,10 +22,11 @@ function createDeadlockLine(deadlockList, uncoveredMarkings){
     deadlockList.forEach(mark => {
         if(uncoveredMarkings.has(mark.id)){
             let deadlockParagraph = document.createElement("p")
-            deadlockParagraph.innerText = mark.id
+            deadlockParagraph.innerText = mark.id + " "
             deadlockParagraph.addEventListener("mouseover", function(){highlightRowByID(mark.id)})
             deadlockParagraph.addEventListener("mouseout", function(){unhighlightRowByID(mark.id)})
             deadlockParagraph.style.cursor = "pointer";
+            deadlockParagraph.style.marginLeft = "5px";
             paragraphContainer.appendChild(deadlockParagraph)
         }
     })

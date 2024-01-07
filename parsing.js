@@ -1,66 +1,135 @@
 import { PetriNet } from "./PetriNet.js"
 
-const placeRegex = /^place ([a-zA-Z]+(\d+)?)( init (\d+))?;$/;
-const transRegex = /^trans ([a-zA-Z]+(\d+))(~(\w+))?( in (\w+(?:, \w+)*))?( out (\w+(?:, \w+)*))?;$/;
-const placeListRegex = /"(\w+)"/g
-const emptyLineRegex = /^[ ]*?$/g
 
 export function parse(file, type, isPTNet){
-    if(type === "tpn"){
-        return parseTPN(file, isPTNet)
-    } else {
-        return parsePNML(file, isPTNet);
-    }
+    let transList, placeList, edgeList, errorList;
+    // Parse the file and extract transitions, places, edges, and errors
+    [transList, placeList, edgeList, errorList, isPTNet] = type === "tpn" ? 
+        parseTPN(file, isPTNet) : parsePNML(file, isPTNet)
+
+    // If the parsing the file was not possible, just the error list is returned
+    if(!transList) return [null, errorList];
+
+    // Initialize the structure of the Petri net
+    const petriNet = new PetriNet(isPTNet);
+    // Maps to store the correspondence between string IDs and numeric IDs
+    const transStringIDMap = new Map();
+    const placeStringIDMap = new Map();
+
+    // Process transitions with defined IDs and sort them
+    transList.filter(trans => typeof trans.id !== "undefined")
+        .sort((trans1, trans2) => trans1.id > trans2.id)
+        .forEach(trans => {
+             // Reset ID if it already exists or exceeds the limit
+            if(petriNet.transExists(trans.id) || trans.id > 99){
+                trans.id = undefined;
+            }
+            // Map the original string ID to the new numeric ID
+            transStringIDMap.set(trans.id_string, trans.id)
+            // Add the transition to the Petri net
+            petriNet.addTrans(trans.id, trans.label);
+        });
+    // Process transitions without defined IDs
+    transList.filter(trans => typeof trans.id === "undefined")
+        .forEach(trans => {
+            // Assign a new ID
+            trans.id = petriNet.getUnusedTransID()
+            transStringIDMap.set(trans.id_string, trans.id)
+            petriNet.addTrans(trans.id, trans.label)
+        })
+
+    // Similar processing for places
+    placeList.filter(place => typeof place.id !== "undefined")
+        .sort((place1, place2) => place1.id > place2.id)
+        .forEach(place => {
+            if(petriNet.placeExists(place.id) || place.id > 99){
+                place.id = undefined;
+            }
+            placeStringIDMap.set(place.id_string, place.id)
+            petriNet.addPlace(place.id, place.init, place.capacity);
+        });
+    placeList.filter(place => typeof place.id  === "undefined")
+        .forEach(place => {
+            place.id = petriNet.getUnusedPlaceID();
+            placeStringIDMap.set(place.id_string, place.id)
+            petriNet.addPlace(place.id, place.init, place.capacity);
+        })
+        
+    // Process edges
+    edgeList.forEach(edge => {
+        // Add edges based on the source and target ID mapping
+        if(transStringIDMap.has(edge.sourceId_string) &&
+        placeStringIDMap.has(edge.targetId_string)){
+            petriNet.addEdge(transStringIDMap.get(edge.sourceId_string),
+                placeStringIDMap.get(edge.targetId_string),
+                edge.weight, true)
+        } else if (placeStringIDMap.has(edge.sourceId_string) &&
+        transStringIDMap.has(edge.targetId_string)){
+            petriNet.addEdge(placeStringIDMap.get(edge.sourceId_string),
+                transStringIDMap.get(edge.targetId_string),
+                edge.weight, false)
+        } else {
+            // Log an error if edge IDs are undefined
+            errorList.push("error: edge contains undefined IDs: " + 
+            edge.sourceId_string + " -> "+ edge.targetId_string);
+        }
+    })
+    // Sort elements in the Petri net for organized structure
+    petriNet.sortElements();
+    // Return the constructed Petri net and any errors
+    return [petriNet, errorList]
 }
 
+const placeRegex = /^place (\w+)( init (\d+))?;$/;
+const transRegex = /^trans (\w+) ?(~ ?([\w ]+))? in (\w+(?:, ?\w+)*) out (\w+(?:, ?\w+)*);$/;
+const placeListRegex = /(\w+)/g
+const emptyLineRegex = /^[ ]*?$/g
 function parseTPN(file, isPTNet){
     //split the file into lines
     let lines = file.split('\n')
-    // "edges" array stores all the places connected to a transition in this format: {transID: , incoming: , outgoing:}
-    //its later use to connect all the places and transitions with each other
-    let edges = [];
-    let petriNet = new PetriNet(isPTNet);
+    
+    // List for all occuring errors
+    const errorList = [];
 
-    lines.forEach(line => {
+    // Lists to save the parsed data, before creating the petri net
+    const placeList = [];
+    const transList = [];
+    const edgeList = [];
+
+    for(const line of lines){
         let matchP = line.match(placeRegex)
         let matchT = line.match(transRegex)
         let emptyLine = line.match(emptyLineRegex)
         if(emptyLine){
 
-        }else if(matchP){
-            console.log(matchP);
-            if(!matchP[2]){
+        } else if (matchP) {
+            const id_string = matchP[1];
+            const id = extractNumber(id_string);
+            const init_value = matchP[3] ? parseInt(matchP[3]) : 0;
+            const capacity_value = isPTNet ? Infinity : 1;
+            placeList.push({"id":id, "id_string": id_string, "init": init_value, "capacity": capacity_value})
+            if(!isPTNet && (init_value != 1 && init_value != 0)){
+                return parseTPN(file, true);
             }
-            if(petriNet.placeExists(matchP[2])){
-                console.log("error: ID used twice: " + matchP[2])
-            } else {
-                let init_value = matchP[4] ? parseInt(matchP[4]) : 0;
-                let capacity_value = isPTNet ? Infinity : 1;
-                console.log(capacity_value);
-                petriNet.addPlace(matchP[2], init_value, capacity_value)
-                //if isPTNet is false, so its supposed to be an EC-Net, but the initial amount of token in one place is above 
-                if(!isPTNet && (init_value != 1 && init_value != 0)){
-                    return parseTPN(file, true);
-                }
+        } else if(matchT){
+            const id_string = matchT[1];
+            const id = extractNumber(id_string);
+            const label = matchT[3] ? matchT[3] : id_string;
+            transList.push({"id":id, "id_string": id_string, "label": label});
+            let incomingFreqMap = readPlaces(matchT[4]).reduce((acc, place_id_string) => {
+                acc[place_id_string] = (acc[place_id_string] || 0) + 1;
+                return acc;}, {})
+            for(const [str, weight] of Object.entries(incomingFreqMap)){
+                if(weight != 1 && !isPTNet) return parseTPN(file, true);
+                edgeList.push({"sourceId_string":str, "targetId_string":id_string, "weight": weight});
             }
-        }else if(matchT){
-            console.log(matchT);
-            if(petriNet.transExists(matchT[2])){
-                console.log("error: ID used twice: " + matchT[1])
-            } else {
-                petriNet.addTrans(matchT[2], matchT[4] ? matchT[4] : "");
-                edges.push({transID: matchT[2], incoming: readPlaces(matchT[5]), outgoing:readPlaces(matchT[6])})
-            }
+            readPlaces(matchT[5]).forEach(place_id_string => edgeList.push(
+                {"sourceId_string":id_string, "targetId_string":place_id_string, "weight": 1}));
         } else {
-            console.log("error: sytax incorrect: " + line)
+            errorList.push("error: sytax incorrect: " + line);
         }
-    });
-    edges.forEach(edge => {
-        edge.incoming.forEach(placeID => petriNet.addEdge(placeID, edge.transID, 1, false))
-        edge.outgoing.forEach(placeID => petriNet.addEdge(edge.transID, placeID, 1, true))
-
-    })
-    return petriNet;
+    }
+    return [transList, placeList, edgeList, errorList, isPTNet];
 }
 
 
@@ -76,6 +145,13 @@ function readPlaces(placeStr){
     return placeArray;
 }
 
+// Function to extract a number from a String
+function extractNumber(number_text){
+    const number_match = number_text.match(/\d+/);
+    if(number_match) return parseInt(number_match[0], 10);
+}
+
+
 function parsePNML(pnmlString, isPTNet) {
     // Parse the PNML XML string
     const parser = new DOMParser();
@@ -84,44 +160,39 @@ function parsePNML(pnmlString, isPTNet) {
     // List for all occuring errors
     const errorList = [];
 
+    // Lists to save the parsed elements
+    const placeList = [];
+    const transList = [];
+    const edgeList = [];
+
     if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
         // Add error description to the error list and return it
         errorList.push("The file is not in valid PNML format.");
-        return [null, errorList];
+        return [null, null, null, errorList];
     }
-
-    // Initialize the structure of the Petri net
-    const petriNet = new PetriNet(isPTNet);
 
     // Helper function to extract text content from an element by tag name
     const getText = (element, tagName) => {
         const foundElement = element.getElementsByTagName(tagName)[0];
         return foundElement ? foundElement.textContent : null;
     };
-
-    const extractID = (id_text) => {
-        const id_match =  id_text.match(/\d+/);
-        let id;
-        id_match ? id = parseInt(id_match[0], 10) : errorList.push(
-            "error: cant parse id: '" + id_text + "'");
-        return id;
-    }
-
     // Process places
     let placeCounter = 0;
     const placeElements = xmlDoc.getElementsByTagName('place');
     for (let place of placeElements) {
-        const id = extractID(place.getAttribute('id'));
-        if(petriNet.placeExists(id)){
-            errorList.push("error: ID used twice: " + id);
-            continue;
+        if(placeCounter > 100) {
+            errorList.push("error: You can't exceed the limit of 100 places");
+            break;
         }
+        const id_string = place.getAttribute('id');
+        const id = extractNumber(id_string);
         // Assumes missing initialMarking means 0
-        const initialMarking = getText(place, 'initialMarking') || '0'; 
+        const initialMarking = extractNumber(getText(place, 'initialMarking') || '0'); 
         const capacity = parseInt(getText(place, 'capacity') || '1'); 
         if(!isPTNet && ((initialMarking != 1 && initialMarking != 0) || capacity != 1)) 
             return parsePNML(pnmlString, true);
-        petriNet.addPlace(id, initialMarking, capacity == -1 ? Infinity : capacity)
+        placeList.push({"id":id, "id_string": id_string, "init": initialMarking, 
+            "capacity": capacity == -1 ? Infinity : capacity})
         placeCounter++;
     }
 
@@ -129,33 +200,33 @@ function parsePNML(pnmlString, isPTNet) {
     const transitionElements = xmlDoc.getElementsByTagName('transition');
     let transCounter = 0;
     for (let trans of transitionElements) {
-        const id = extractID(trans.getAttribute('id'));
-        if(petriNet.transExists(id)){
-            errorList.push("error: ID used twice: " + id);
-            continue;
+        if(transCounter > 100) {
+            errorList.push("error: You can't exceed the limit of 100 transitions");
+            break;
         }
+        const id_string = trans.getAttribute('id');
+        const id = extractNumber(id_string);
         // Use the ID as a fallback label
-        const label = getText(trans, 'name').trim() || id; 
-        petriNet.addTrans(id, label);
+        const label = getText(trans, 'name').trim() || trans.getAttribute('id'); 
+        transList.push({"id":id, "id_string": id_string, "label": label})
         transCounter++;
     }
 
-    // Process arcs and update places and transitions
+    // Process arcs and update plces and transitions
     const arcElements = xmlDoc.getElementsByTagName('arc');
     for (let arc of arcElements) {
-        const sourceId = extractID(arc.getAttribute('source'));
-        const targetId = extractID(arc.getAttribute('target'));
+        const sourceId_string = arc.getAttribute('source');
+        const targetId_string = arc.getAttribute('target');
         const inscription = getText(arc, 'inscription');
         // Assumes missing inscription means weight of 1
         const weight = inscription ? parseInt(inscription, 10) : 1; 
         if(!isPTNet && weight != 1) return parsePNML(pnmlString, true);
-        const startIsTrans = arc.getAttribute('source')
-            .toUpperCase().startsWith("T")
-        petriNet.addEdge(sourceId, targetId, weight, startIsTrans);
+        edgeList.push({"sourceId_string":sourceId_string,
+            "targetId_string":targetId_string, "weight": weight})
     }
 
     // The petriNet object is now populated with the data from the PNML
-    return [petriNet, errorList];
+    return [transList, placeList, edgeList, errorList, isPTNet];
 }
 
 export function getTransAsString(file){
@@ -242,13 +313,4 @@ export function unparseToPNML(trans, places) {
     `;
 
     return pnml;
-}
-
-function logError(errorText){
-    console.log(errorText);
-}
-
-
-function parsingError(text){
-    console.log(text);
 }

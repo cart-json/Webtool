@@ -5,11 +5,18 @@
     padding: 0px;
 }
 #top{
-
+    display: flex;
     flex: 0 0 auto; 
     width: 100%;
-    height: 65px;
+    height: 45px;
     padding: 1px;
+}
+#top *{
+    display: inline-block;
+    align-self: flex-end;
+    bottom: 0; 
+    margin-top: auto;
+    font-size: 16px;
 }
 button {
     background-color: #000;
@@ -30,7 +37,8 @@ button:hover {
     z-index: -1;
 }
 #fileName {
-    margin-left: 10px;
+    margin-left: 5px;
+    margin-right: 10px;
 }
 .custom-file-upload {
     display: inline-block;
@@ -48,24 +56,31 @@ body{
     background-size: 100%;
     height: 100vh;
 }
-.grid-container{
-    flex: 1 1 auto; 
-    height: 92%;
+.grid-container {
     display: flex; 
-    grid-template-columns: 1fr auto;
-    grid-gap: 0px; 
+    height:calc(100% - 45px);
 }
-.divide1{
-    flex: 1;
+
+.divide1 {
+    flex: 1 1 auto;
     min-height: 300px;
-    vertical-align:top;
-    min-width: 300px;
-    width: 50%;
+    vertical-align: top;
+    min-width: 500px;
+    width: auto; /* Adjust as needed */
+}
+
+/* Add a draggable divider between the divs */
+.divider {
+    background: black;
+    cursor: ew-resize;
+    width: 2px;
+    min-width: 2px;
 }
 /*space for the svg*/
 #content {
     overflow: auto; 
-    width: 100%; height: 75%; 
+    width: 100%;
+    height: calc(100% - 175px);
     vertical-align:top;
     border: 1px solid black;
     box-sizing: border-box;
@@ -73,7 +88,8 @@ body{
 /*console*/
 #console_wrap { 
     width: 100%; 
-    height: 25%; 
+    height: 175px;
+    min-width: 500px;
     vertical-align:top;
     display: flex;
     flex-direction: column; 
@@ -81,7 +97,7 @@ body{
 #console_places_wrap {
     float: left;
     position: relative;
-    width: 30%;
+    width: 33%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -90,7 +106,7 @@ body{
 #console_trans_wrap {
     float: left;
     position: relative;
-    width: 40%;
+    width: 39%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -99,7 +115,7 @@ body{
 #console_edges_wrap{
     float: left;
     position: relative;
-    width: 30%;
+    width: 28%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -190,20 +206,19 @@ input:checked + .slider:before {
 /*labelsAndProps*/
 #labelsAndPropsWrap1 { 
     min-width: 30vw;
-    height: 25%;
-    display: flex;
-    flex-direction: row; 
+    height: 25%;   
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
 }
 #labelsAndPropsWrap2 {
-    float: left;
     position: relative;
-    width: 50%;
-    flex: 1;
+    width: 100%;
     height: 100%;
     font-size: 13px;
     border: 1px solid black;
+    flex-wrap: wrap;
     box-sizing: border-box;
-    overflow: auto; 
+    overflow-y: auto; 
 }
 /*Marking Table*/
 #markingTableWrap{

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pnml>
+    <net id="net1" type="pnmlcoremodel">
+        <place id="P0">
+            <name>
+                <text>Start</text>
+            </name>
+            <initialMarking>
+                <text>1</text>
+            </initialMarking>
+        </place>
+        <place id="P1">
+            <name>
+                <text>Finish</text>
+            </name>
+            <capacity>
+                <text>2</text>
+            </capacity>
+        </place>
+        <transition id="T1">
+            <name>
+                <text>Task1</text>
+            </name>
+        </transition>
+        <arc id="a_0_1" source="P0" target="T1">
+            <inscription>
+                <text>1</text>
+            </inscription>
+        </arc>
+        <arc id="a_1_0" source="T1" target="P1">
+            <inscription>
+                <text>1</text>
+            </inscription>
+        </arc>
+    </net>
+</pnml>
+
+
+
+
+

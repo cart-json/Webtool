@@ -1,5 +1,5 @@
-place P init 1;
-place P;
+place P0 init 1;
+place P1;
 place P2;
 place P3;
 place P4;

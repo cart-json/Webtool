@@ -14,7 +14,7 @@
 				<text>p2</text>
 			</name>
 		</place>
-		<transition id="t1">
+		<tranition id="t1">
 			<name>
 			</name>
 		</transition>
@@ -44,4 +44,4 @@
 			</inscription>
 		</arc>
 	</net>
-</pnml>
+</pnl>
