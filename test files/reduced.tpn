@@ -1,0 +1,141 @@
+place "start" -- 0
+ init 1
+;
+place "c5" -- 1
+;
+place "c6" -- 2
+;
+place "c9" -- 3
+;
+place "c11" -- 4
+;
+place "c12" -- 5
+;
+place "c13" -- 6
+;
+place "c14" -- 7
+;
+place "c15" -- 8
+;
+place "c16" -- 9
+;
+place "c17" -- 10
+;
+place "c18" -- 11
+;
+place "c19" -- 12
+;
+place "c20" -- 13
+;
+place "klaar" -- 14
+;
+trans "t1" -- 15
+  in
+    "start"
+
+  out
+    "c15"
+    "c5"
+    "c6"
+    "c9"
+    "c12"
+;
+trans "t6" -- 16
+  in
+    "c5"
+    "c6"
+    "c14"
+
+  out
+    "klaar"
+;
+trans "t9" -- 17
+  in
+    "c6"
+    "c9"
+
+  out
+    "c6"
+    "c11"
+;
+trans "t11" -- 18
+  in
+    "c11"
+    "c12"
+
+  out
+    "c13"
+;
+trans "t12" -- 19
+  in
+    "c13"
+    "c19"
+
+  out
+    "c14"
+;
+trans "t13" -- 20
+  in
+    "c15"
+
+  out
+    "c16"
+;
+trans "t14a" -- 21
+  in
+    "c16"
+
+  out
+    "c17"
+;
+trans "t14b" -- 22
+  in
+    "c16"
+
+  out
+    "c19"
+;
+trans "t15" -- 23
+  in
+    "c6"
+    "c17"
+
+  out
+    "c6"
+    "c18"
+;
+trans "t16a" -- 24
+  in
+    "c18"
+
+  out
+    "c19"
+;
+trans "t16b" -- 25
+  in
+    "c18"
+
+  out
+    "c17"
+;
+trans "t17" -- 26
+  in
+    "c15"
+
+  out
+    "c20"
+;
+trans "t18a" -- 27
+  in
+    "c20"
+
+  out
+    "c16"
+;
+trans "t18b" -- 28
+  in
+    "c20"
+
+  out
+    "c15"
+;

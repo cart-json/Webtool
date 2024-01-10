@@ -7,17 +7,23 @@ export class Analysis {
         this.coverabilityGraph = this.coverabilityAna(this.places, this.transitions)
         this.loops = [];
         this.errors = [];
+        this.unsoundMarkings = [];
+        this.unsoundNodes = [];
     }
 
     // Analyses all properties and retruns the reesults
     analyse(){
-        let markings = this.reachabilityAna(this.places,this.transitions)
+        let [markings, newErrors] = this.reachabilityAna(this.places,this.transitions)
+        this.markings = markings;
+        this.errors = newErrors;
         this.analyseLoops(markings);
         return {markings: markings,
             deadlocks: this.deadlocks(markings),
             boundedness: this.analyzeBoundedness(markings),
             soundness: this.analyzeSoundness(this.places,this.transitions),
+            unsoundMarkings: this.unsoundMarkings,
             strSoundness: this.analyzeStrSoundness([...this.places, ...this.transitions]),
+            unsoundNodes: this.unsoundNodes,
             liveness: this.analyseLiveness(this.transitions, markings),
             loops: this.loops,
             components: this.analyseComponents(this.places, this.transitions),
@@ -26,11 +32,12 @@ export class Analysis {
 
     // The reachability analysis method for a given Petri net
     reachabilityAna(places, transitions){
-         // Sets up the initial marking
+        // Sets up the initial marking
         let initialMarking = this.setupInitialMarking(places)
         let toExplore = [initialMarking] // Queue of markings to explore
         let markings = [initialMarking] // Stores all the discovered markings
         let counter = 1; // Counter for new markings
+        let errors = [] // Stores all occuring errors
         // Length of the coverability graph
         let cover_depth = this.coverabilityGraph.length;
         let max_depth = 100; // Maximum depth for exploration
@@ -112,10 +119,10 @@ export class Analysis {
         }
         //if the limit is exceeded, an error message is added
         if(overflow){
-            this.errors.push("Warning: Marking limit of 100 exceeded. The resulting " +
+            errors.push("Warning: Marking limit of 100 exceeded. The resulting " +
             "marking table is not complete and the listed properties might not be correct.");
         }
-        return markings;
+        return [markings, errors];
     }
 
     // the pure coverabiltiy analysis, similar to the coverability analysis in 'reachabilityAna'
@@ -246,7 +253,6 @@ export class Analysis {
                 }
                 finalPlace = place;
             }
-            return true;
         }
         // Return false if initial or final places are not valid or not found
         if(initPlace == null || finalPlace == null) return false;
@@ -256,7 +262,11 @@ export class Analysis {
         initPlace.init = 1;
 
         // Perform reachability analysis
-        let markings = this.reachabilityAna(places,transitions);
+        let  [markings, newErrors] = this.reachabilityAna(places,transitions);
+        if(newErrors.length != 0){
+            this.errors.push("Warning: Marking limit of 100 exceeded in soundness analysis. The resulting " +
+            "soundness property might not be correct.");
+        }
 
         // Find final marking from deadlock states
         let deadlockList = this.deadlocks(markings)
@@ -297,6 +307,18 @@ export class Analysis {
         }
         // Verify if all markings are accounted for
         if(prevMarkSet.size != markings.length - 1){
+            let prevMarkArr = Array.from(prevMarkSet);
+            let initsAreEqual = places.reduce((prev, place) => this.markings[0].markingArr[place.index] == place.init && prev, true);
+            if(initsAreEqual){
+                prevMarkArr.push(finalMarking);
+                markings.forEach(mark => {
+                    if(!prevMarkArr.find(prevMark => prevMark.markingArr
+                        .every((elem, index) => elem == mark.markingArr[index]))){
+                            this.unsoundMarkings.push(mark);
+                    }
+                })
+                console.log(this.unsoundMarkings);
+            }
             return false;
         }
         // Check for dead transitions
@@ -355,9 +377,16 @@ export class Analysis {
                 }
             })
         }
+
+        //check if all nodes appear in the found sets
+        nodes.forEach(node => {
+            if(!initFoll.has(node) || !finalPrev.has(node)){
+                this.unsoundNodes.push(node);
+            }
+        })
+
         // Determine if all nodes are part of the path from initial to final node
-        return initFoll.length == finalPrev.length && 
-            [...initFoll].every(node => finalPrev.has(node));
+        return this.unsoundNodes.length == 0;
     }
     
 

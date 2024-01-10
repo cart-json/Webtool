@@ -7,7 +7,8 @@
 #top{
     display: flex;
     flex: 0 0 auto; 
-    width: 100%;
+    width: 99%;
+    min-width: 500px;
     height: 45px;
     padding: 1px;
 }
@@ -22,6 +23,7 @@ button {
     background-color: #000;
     color: white;
     border: none;
+    margin: 0px 0px 2px 2px;
     padding: 2px 6px;
     border-radius: 4px;
     cursor: pointer;
@@ -51,6 +53,40 @@ button:hover {
     border-radius: 4px;
     cursor: pointer;
 }
+/* Help window*/
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 3;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.popup-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
 /* containers and dividers*/
 body{
     background-size: 100%;
@@ -70,6 +106,12 @@ body{
 }
 
 /* Add a draggable divider between the divs */
+.consoleDivider{
+    background: black;
+    cursor: ns-resize;
+    height: 2px;
+    min-height: 2px;
+}
 .divider {
     background: black;
     cursor: ew-resize;
@@ -80,7 +122,7 @@ body{
 #content {
     overflow: auto; 
     width: 100%;
-    height: calc(100% - 175px);
+    height: calc(100% - 177px);
     vertical-align:top;
     border: 1px solid black;
     box-sizing: border-box;
@@ -97,7 +139,7 @@ body{
 #console_places_wrap {
     float: left;
     position: relative;
-    width: 33%;
+    width: 33.4%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -106,7 +148,7 @@ body{
 #console_trans_wrap {
     float: left;
     position: relative;
-    width: 39%;
+    width: 39.9%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -115,7 +157,7 @@ body{
 #console_edges_wrap{
     float: left;
     position: relative;
-    width: 28%;
+    width: 26.7%;
     height: 100%;
     border: 1px solid #000;
     box-sizing: border-box;
@@ -248,6 +290,7 @@ input:checked + .slider:before {
     border: 1px;
     text-align: center;
     border-style: solid;
+    box-sizing: border-box;
 }
 #markingTableWrap table{
     position: relative;
@@ -295,4 +338,7 @@ input:checked + .slider:before {
 }
 .highlightedRow{
     background-color: red;
+}
+.highlightedRow td.stayWhite{
+    background-color: initial;
 }

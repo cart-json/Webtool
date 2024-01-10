@@ -70,9 +70,12 @@ export class PetriNet{
         if (isNaN(init) || init < 0) {
             init = 0;
         }
+
         // Validate that capacity is a non-negative integer or Infinity
         if ((capacity !== Infinity && isNaN(capacity)) || capacity < 0) {
             capacity = this.isPTNet ? Infinity : 1;
+        } else if (capacity > 9 && capacity !== Infinity){
+            capacity = 9;
         }
         if(init > capacity){
             init = capacity;
@@ -98,6 +101,8 @@ export class PetriNet{
         // Validate that weight is a non-negative integer or Infinity
         if (isNaN(weight) || weight <= 0) {
             weight = 1;
+        } else if (weight > 9){
+            weight = 9;
         }
 
         let start, target;

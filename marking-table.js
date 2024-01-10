@@ -109,6 +109,7 @@ document.getElementById("unhideButton").onclick = function() {
 
 export function highlightRowByID(rowId){
     const row = document.getElementById(rowId);
+    if(!row) return;
     if(!row.classList.contains("highlightedRow")){
         row.classList.add("highlightedRow");
     }
@@ -116,19 +117,29 @@ export function highlightRowByID(rowId){
 
 export function unhighlightRowByID(rowId){
     const row = document.getElementById(rowId);
+    if(!row) return;
     if(row.classList.contains("highlightedRow")){
         row.classList.remove("highlightedRow");
     }
 }
 
 export function highlightTransColumn(id, prev_id){
+}
 
+export function highlightCellsWithValue(value){
+    state.loaded_rows.forEach(row => row.highlightCellsWithValue(value));
+    
+}
+
+export function unhighlightCellsWithValue(value){
+    state.loaded_rows.forEach(row => row.unhighlightCellsWithValue(value));
 }
 
 class MarkingRow{
     constructor(marking){
         this.marking = marking;
         this.transCells = [];
+        this.placeCells = [];
         this.uncovered = false;
         this.loaded = false;
         this.deleteButton = this.createDeleteButton();
@@ -140,8 +151,11 @@ class MarkingRow{
         const row = document.createElement("tr")
         row.appendChild(createMarkingCell(this.marking))
         row.id = this.marking.id;
-        this.marking.markingArr.forEach(placeMark => 
-            row.appendChild(createTextCell(placeMark == Infinity?"ω" : placeMark)))
+        this.marking.markingArr.forEach(placeMark =>   {
+            let cell = createTextCell(placeMark == Infinity?"ω" : placeMark)
+            this.placeCells.push(cell);
+            row.appendChild(cell);
+        })
         state.transitions.forEach(trans1 =>{
             let cell = createInteractiveTextCell(null)
             this.marking.nextMarks.forEach((follMarking, trans2) => {
@@ -156,8 +170,11 @@ class MarkingRow{
     createDeleteableMarkingRow(){
         let new_row = this.createRow();
         let last_cell = new_row.cells[new_row.cells.length - 1]
+        last_cell.style.backgroundColor = "white";
+        last_cell.classList.add("stayWhite");
         last_cell.innerHTML = "";
         last_cell.appendChild(this.deleteButton);
+
         return new_row;
     }
 
@@ -219,6 +236,20 @@ class MarkingRow{
             unhideCell(cell, null);
         }
     }
+    highlightCellsWithValue(value){
+        for(let i = 0; i < this.marking.markingArr.length; i++){
+            if(this.marking.markingArr[i] == value){
+                this.placeCells[i].style.backgroundColor = "red";
+            }
+        }
+    }
+    unhighlightCellsWithValue(value){
+        for(let i = 0; i < this.marking.markingArr.length; i++){
+            if(this.marking.markingArr[i] == value){
+                this.placeCells[i].style.backgroundColor = "transparent";
+            }
+        }
+    }
 }
 
 
@@ -268,6 +299,8 @@ function createWhiteCell(){
     const cell = document.createElement("td")
     const wrap = document.createElement("div")
     cell.appendChild(wrap)
+    cell.style.backgroundColor = "white";
+    cell.classList.add("stayWhite");
     cell.style.border='0px';
     return cell
 }

@@ -56,6 +56,7 @@ export function readConsole(){
         let [start_id, target_id, weight] = edge.getValues();
         petriNet.addEdge(start_id, target_id, weight, edge.startIsTrans);
     })
+    petriNet.sortElements();
     return petriNet;
 }
 

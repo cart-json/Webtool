@@ -6,22 +6,25 @@
         <title>PNEd</title>
         <style>
         </style>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     </head>
     <body>
         <!-- Kommentar -->
         <div id="top">
             <div class="top_input">
-                <h1 style="margin: 0px;" id="headline">PNEd</h1> 
+                <h1 style="margin: 0px; font-size: 40px;" id="headline">PNEd</h1>
                 <form>
                     <label for="fileUpload" class="custom-file-upload">Browse</label>
                     <span id="fileName">No file chosen</span>
                     <input id="fileUpload" type="file" style="display: none;">
-                    <button type="button" id="console_save">Save as .pnml</button>
+                    <button type="button" id="console_save">Save</button>
+                    <button type="button" id="helpButton">Help</button>
                 </form>
             </div>
         </div>
+        <div id="helpContentContainer"></div>       
         <div class="grid-container">
-            <div class="divide1">
+            <div id="NetAndConsole" class="divide1">
                 <div id="content">
                 </div>
                 <div id="console_wrap">

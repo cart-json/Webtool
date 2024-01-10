@@ -35,7 +35,7 @@ export function vizPetriNet(components, highlightTrasition, isPTNet) {
         let startRow = state.grid.length;
         if(gridWidth < treeWidth) gridWidth = treeWidth;
         // Add all tree nodes to the grid
-        tree.forEach(treeNode => addTreeNode(treeNode.element, treeNode.depth 
+        tree.forEach(treeNode => addTreeNode(treeNode.element, treeNode.row 
             + startRow, treeNode.width, treeNode.column, gridWidth))
     }
 
@@ -59,6 +59,152 @@ export function vizPetriNet(components, highlightTrasition, isPTNet) {
 }
 
 function createTree(component) {
+    // Initialize variables for building the tree
+    let addedElems = new Set()
+    let tree = [];
+    let queue = [];
+    let firstRow = [];
+
+    // Function to add a treeNode to the tree at a specified row
+    function addNode(element, row){
+        const treeNode = {
+            element: element,
+            children: [],
+            width: 1,
+            depth: 0,
+            row: row,
+            column: 0
+        };
+        tree.push(treeNode);
+        return treeNode;
+    }
+
+    // Process initial treeNode (with no incoming edges) and add to tree
+    for (var n = 0; n < component.length; n++) {
+        if (component[n].incoming.length == 0) {
+            let treeNode = addNode(component[n], 0);
+            firstRow.push(treeNode);
+            queue.push(treeNode);
+            addedElems.add(component[n]);
+        }
+    };
+    // In case no initial tree nodes were found, start with the first node in the component
+    if(tree.length == 0){
+        let treeNode = addNode(component[0], 0);
+        firstRow.push(treeNode);
+        queue.push(treeNode);
+        addedElems.add(component[0]);
+    }
+    // BFS to build tree, adding children to each treeNode
+    while (queue.length != 0) {
+        let treeNode = queue.shift()
+        treeNode.element.outgoing.forEach(out => {
+            if (!addedElems.has(out)) {
+                let newNode = addNode(out, treeNode.row + 1)
+                queue.push(newNode);
+                treeNode.children.push(newNode);
+                addedElems.add(out);
+            }
+        })
+        treeNode.element.incoming.forEach(inc => {
+            if (!addedElems.has(inc)) {
+                let newNode = addNode(inc, treeNode.row + 1)
+                queue.push(newNode);
+                treeNode.children.push(newNode);
+                addedElems.add(inc);
+            }
+        })
+    }
+    // Calculate recursively the width of the tree and each sub-tree 
+    // and sort the subtrees according to their depth
+    function calcDepth(treeNode){
+        let result;
+        if(treeNode.children.length == 0){
+            result = 0;
+        } else {
+            result = treeNode.children.reduce((a,childNode) => {
+                    let childDepth = calcDepth(childNode);
+                    return a < childDepth ? childDepth : a;
+                }, 0) + 1;
+        }
+        treeNode.children.sort((childA, childB) => {
+            if(childA.depth < childB.depth){
+                return 1;
+            } else if (childA.depth > childB.depth){
+                return -1;
+            } else {
+                return 0;
+            } 
+        })
+        treeNode.depth = result;
+        return result;
+    }
+    // Calculate recursively the width of the tree and each sub-tree
+    function calcWidth(treeNode){
+        let result = 0;
+        let children = treeNode.children;
+        if(treeNode.children.length == 0){
+            result = 1;
+        } else {
+            for(let i = 0; i < children.length; i++){
+                if(i == 0){
+                    calcWidth(children[i]);
+                } else {
+                    // Calculate the width iof the children[i-1] at the specified depth
+                    let depth = children[i].depth;
+                    children[i-1].width = calcWidthAtDepth(children[i-1], depth + 1)
+                }
+            }
+            result = children.reduce((a,childNode) => a + childNode.width, 0);
+        }
+        treeNode.width = result;
+        return result;
+    }
+    // Calculate recursively the width of the tree and each sub-tree at 
+        //a specific depth
+    function calcWidthAtDepth(treeNode, depth){
+        let result = 0;
+        let children = treeNode.children;
+        if(treeNode.children.length == 0 || depth == 0){
+            result = 1;
+        } else {
+            result = children.reduce((a,childNode) => 
+                a + calcWidthAtDepth(childNode, depth - 1), 0);
+        }
+        treeNode.width = result;
+        return result;
+    }
+
+    // Calculate recursively the column positions of each treeNode
+    function calcColumn(treeNode){
+        for(let i = 0; i < treeNode.children.length; i++){
+            if(i == 0){
+                treeNode.children[i].column = treeNode.column;
+            } else {
+                treeNode.children[i].column = treeNode.children[i-1].width 
+                    + treeNode.children[i-1].column;
+            }
+            calcColumn(treeNode.children[i]);
+        }
+    }
+    // Calculate columns for the whole tree
+    for(let i = 0; i < firstRow.length; i++){
+        calcDepth(firstRow[i]);
+        calcWidth(firstRow[i]);
+        if(i > 0)
+            firstRow[i].column = firstRow[i - 1].width + firstRow[i - 1].column;
+        calcColumn(firstRow[i]);
+    }
+
+    // Calculate the total width required for the tree
+    let treeWidth = tree.reduce((prevMax, treeNode) => 
+        prevMax < treeNode.column ? treeNode.column : prevMax, 0) + 1;
+
+    // Return the constructed tree and its required width
+    return [tree, treeWidth];
+}
+
+function createTree2(component) {
     // Initialize variables for building the tree
     let addedElems = new Set()
     let tree = [];
@@ -255,17 +401,25 @@ class Node{
 
     // Function that changes the color of the node and the connected arrows
     highlight(){
-        this.vizNode.setAttribute('fill', 'red')
-        this.outgoingArrows.forEach(arrow => arrow.highlight("green"));
-        this.incomingArrows.forEach(arrow => arrow.highlight("red"));
+        if(this.isPlace){
+            this.vizNode.setAttribute('stroke', 'red');
+        } else  {
+            this.vizNode.setAttribute('fill', 'red')
+            this.outgoingArrows.forEach(arrow => arrow.highlight("green"));
+            this.incomingArrows.forEach(arrow => arrow.highlight("red"));
+        }
         state.svg.appendChild(this.vizNode);
     }
 
     // Function that turns the node and the connected arrows to the initial color
     unhighlight(){
-        this.vizNode.setAttribute('fill', 'black')
-        this.outgoingArrows.forEach(arrow => arrow.unhighlight());
-        this.incomingArrows.forEach(arrow => arrow.unhighlight());
+        if(this.isPlace){
+            this.vizNode.setAttribute('stroke', 'black');
+        } else  {
+            this.vizNode.setAttribute('fill', 'black')
+            this.outgoingArrows.forEach(arrow => arrow.unhighlight());
+            this.incomingArrows.forEach(arrow => arrow.unhighlight());
+        }
     }
 
     // Function return the coordinates of the nodes connection Points
@@ -392,7 +546,7 @@ function verticalLineIsFree(x,from, to, offset){
     if(state.grid.length <= to)
         return false;
     for(let i = from + offset; i < to + offset; i++){
-        if(state.grid[i].length < x && state.grid[i][x] !== "") 
+        if(state.grid[i].length < x || state.grid[i][x] !== "") 
             return false;
     }
     return true;
@@ -538,8 +692,8 @@ class Arrow {
             group.appendChild(this.drawLine(coord1.x, coord1.y, coord2.x, coord2.y));
             // The weight is visualized if its above 1
             if(weight != 1){
-                let weight_x = coord1.x + 2/5 * (coord2.x - coord1.x) - 5;
-                let weight_y = coord1.y + 2/5 * (coord2.y - coord1.y) - 5;
+                let weight_x = coord1.x + 2/5 * (coord2.x - coord1.x) - 4 * Math.sign(vertDiff);
+                let weight_y = coord1.y + 2/5 * (coord2.y - coord1.y) - 10 * Math.sign(vertDiff);
                 group.appendChild(this.addWeight(weight_x, weight_y, weight, vertDiff>0));
             }
         }
@@ -585,7 +739,6 @@ class Arrow {
             weightText.setAttribute('text-anchor', 'start');
         }
         weightText.textContent = weight;
-        console.log(goingUp);
         weightText.setAttribute('x', x);
         weightText.setAttribute('y', y);
         weightText.setAttribute('fill', 'black');
@@ -603,6 +756,18 @@ export function updateTokens(places, markingArr){
             if(placeNode) placeNode.addTokens(markingArr[place.index])
         })
     }
+}
+
+export function highlightNode(id){
+    let node = state.idNodeMap.get(id);
+    if(node) node.highlight();
+    
+}
+
+export function unhighlightNode(id){
+    let node = state.idNodeMap.get(id);
+    if(node) node.unhighlight();
+    highlightTransNode(state.highlightedNode);
 }
 
 // Function highlights a transition in the svg and unhighlights the previous one

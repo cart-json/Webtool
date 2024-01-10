@@ -1,4 +1,4 @@
-import { PetriNet } from "./PetriNet.js"
+import { PetriNet } from "../PetriNet.js"
 
 
 export function parse(file, type, isPTNet){
@@ -80,38 +80,44 @@ export function parse(file, type, isPTNet){
     return [petriNet, errorList]
 }
 
+// Regular expressions for parsing places and transitions in TPN files
 const placeRegex = /^place (\w+)( init (\d+))?;$/;
 const transRegex = /^trans (\w+) ?(~ ?([\w ]+))? in (\w+(?:, ?\w+)*) out (\w+(?:, ?\w+)*);$/;
 const placeListRegex = /(\w+)/g
 const emptyLineRegex = /^[ ]*?$/g
 function parseTPN(file, isPTNet){
-    //split the file into lines
+    // Split file into lines for parsing
     let lines = file.split('\n')
     
     // List for all occuring errors
     const errorList = [];
 
-    // Lists to save the parsed data, before creating the petri net
+    // Error list and lists for parsed data
     const placeList = [];
     const transList = [];
     const edgeList = [];
 
     for(const line of lines){
+        // Match lines with regex for places, transitions, or empty lines
         let matchP = line.match(placeRegex)
         let matchT = line.match(transRegex)
         let emptyLine = line.match(emptyLineRegex)
+        // Process matches for place, transition, or handle syntax errors
         if(emptyLine){
-
+            // Skip empty lines
         } else if (matchP) {
+            // Process place line and update placeList
             const id_string = matchP[1];
             const id = extractNumber(id_string);
             const init_value = matchP[3] ? parseInt(matchP[3]) : 0;
             const capacity_value = isPTNet ? Infinity : 1;
-            placeList.push({"id":id, "id_string": id_string, "init": init_value, "capacity": capacity_value})
+            placeList.push({"id":id, "id_string": id_string, 
+                "init": init_value, "capacity": capacity_value})
             if(!isPTNet && (init_value != 1 && init_value != 0)){
                 return parseTPN(file, true);
             }
         } else if(matchT){
+            // Process transition line and update transList and edgeList
             const id_string = matchT[1];
             const id = extractNumber(id_string);
             const label = matchT[3] ? matchT[3] : id_string;
@@ -126,9 +132,11 @@ function parseTPN(file, isPTNet){
             readPlaces(matchT[5]).forEach(place_id_string => edgeList.push(
                 {"sourceId_string":id_string, "targetId_string":place_id_string, "weight": 1}));
         } else {
+            // Add syntax error to errorList for lines not matching regex patterns
             errorList.push("error: sytax incorrect: " + line);
         }
     }
+    // Return parsed data and any errors encountered
     return [transList, placeList, edgeList, errorList, isPTNet];
 }
 
@@ -288,7 +296,7 @@ export function unparseToPNML(trans, places) {
         for(let outPlace of tran.outgoing) {
             let weight = tran.outgoingWeights.get(outPlace);
             pnml += `
-                <arc id="a_${tran.id}_${outPlace.id}" source="${tran.id_text}" target="${outPlace.id_text}">
+                <arc id="a_${tran.id_text}_${outPlace.id_text}" source="${tran.id_text}" target="${outPlace.id_text}">
                     <inscription>
                         <text>${weight}</text>
                     </inscription>
@@ -298,7 +306,7 @@ export function unparseToPNML(trans, places) {
         for(let inPlace of tran.incoming) {
             let weight = tran.incomingWeights.get(inPlace);
             pnml += `
-                <arc id="a_${inPlace.id}_${tran.id}" source="${inPlace.id_text}" target="${tran.id_text}">
+                <arc id="a_${inPlace.id_text}_${tran.id_text}" source="${inPlace.id_text}" target="${tran.id_text}">
                     <inscription>
                         <text>${weight}</text>
                     </inscription>
