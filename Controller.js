@@ -38,6 +38,7 @@ function tryParsing(text, fileName){
     let [petriNet, errorList] = parse(text, filetype, state.isPTNet);
     if(errorList.length > 0) alert(errorList.join('\n'));
     if(!petriNet) return;
+    console.log(petriNet);
     updateFileName(fileName);
     if(!state.isPTNet && petriNet.isPTNet) updateNetType(true);
     loadConsole(petriNet.places, petriNet.transitions, state.isPTNet)
@@ -74,6 +75,7 @@ export function analyzeInput(petriNet){
 function loadPetriNet(){
     const svg = vizPetriNet(state.anaResult.components, highlightTransition, state.isPTNet);
     //const svg = vizWFNet(state.anaResult, highlightTransition, state.isPTNet);
+    if(!svg) return;
     document.getElementById("content").innerHTML = "";
     document.getElementById("content").appendChild(svg);
 }

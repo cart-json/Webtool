@@ -144,7 +144,7 @@ class ConsoleTrans{
         function handleEnterPressed(event){
             if(event.key === "Enter"){
                 event.preventDefault();
-                if(event.ctrlKey){
+                if(event.shiftKey){
                     addTrans();
                 } else {
                     analyzeInput(readConsole());
@@ -209,7 +209,7 @@ class ConsolePlace{
         function handleEnterPressed(event){
             if(event.key === "Enter"){
                 event.preventDefault();
-                if(event.ctrlKey){
+                if(event.shiftKey){
                     addPlace();
                 } else {
                     analyzeInput(readConsole());
@@ -367,7 +367,7 @@ class ConsoleEdge{
         function handleEnterPressed(event){
             if(event.key === "Enter"){
                 event.preventDefault();
-                if(event.ctrlKey){
+                if(event.shiftKey){
                     load_edge();
                 } else {
                     analyzeInput(readConsole());

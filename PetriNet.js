@@ -161,14 +161,18 @@ export class Transition{
 
     // Adds an outgoing connection from this transition to a place
     addOutgoing(place, weight){
-        this.outgoing.push(place);
-        this.outgoingWeights.set(place, weight);
+        if(!this.outgoing.includes(place)){
+            this.outgoing.push(place);
+            this.outgoingWeights.set(place, weight);
+        }
     }
 
     // Adds an incoming connection to this transition from a place
     addIncoming(place, weight){
-        this.incoming.push(place);
-        this.incomingWeights.set(place, weight);
+        if(!this.incoming.includes(place)){
+            this.incoming.push(place);
+            this.incomingWeights.set(place, weight);
+        }
     }
     
     // Returns all nodes (places) connected to this transition
@@ -195,14 +199,18 @@ export class Place{
 
     // Adds an outgoing connection from this place to a transition
     addOutgoing(trans, weight){
-        this.outgoing.push(trans)
-        this.outgoingWeights.set(trans, weight)
+        if(!this.outgoing.includes(trans)){
+            this.outgoing.push(trans)
+            this.outgoingWeights.set(trans, weight)
+        }
     }
 
     // Adds an incoming connection to this place from a transition
     addIncoming(trans, weight){
-        this.incoming.push(trans)
-        this.incomingWeights.set(trans, weight)
+        if(!this.incoming.includes(trans)){
+            this.incoming.push(trans)
+            this.incomingWeights.set(trans, weight)
+        }
     }
 
     // Returns all nodes (transitions) connected to this place
