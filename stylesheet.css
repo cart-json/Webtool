@@ -94,7 +94,7 @@ body{
 }
 .grid-container {
     display: flex; 
-    height:calc(100% - 45px);
+    height:calc(100% - 47px);
 }
 
 .divide1 {
@@ -286,7 +286,6 @@ input:checked + .slider:before {
 }
 #markingTableWrap td {
     height: 20px;
-    width: 30px;
     border: 1px;
     text-align: center;
     border-style: solid;
@@ -301,7 +300,6 @@ input:checked + .slider:before {
 }
 table div{
     height: 20px;
-    width: 30px;
     font-size: 13px;
 }
 .locked div{

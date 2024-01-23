@@ -1,6 +1,7 @@
 import { unhighlightRowByID, highlightRowByID, highlightCellsWithValue, unhighlightCellsWithValue } from "./marking-table.js";
 import { highlightNode, unhighlightNode } from "./libraries/visulization.js";
 
+//lists all properties
 export function vizProperties(anaResult, uncoveredMarkings){
     let lifenessString;
     if(anaResult.liveness.reduce((prev, liveness) => prev && liveness == 4, true)){
@@ -75,7 +76,7 @@ function createSoundnessString(soundness, unsoundMarkings){
 
 function createStrSoundnessString(strSoundness, unsoundNodes){
     let paragraph = document.createElement("p")
-    paragraph.innerText = "structual soundness: " + strSoundness
+    paragraph.innerText = "structural soundness: " + strSoundness
     paragraph.addEventListener("mouseover", function(){
         unsoundNodes.forEach(node => highlightNode(node.id_text))
     })

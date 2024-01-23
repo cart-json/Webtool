@@ -1,6 +1,7 @@
 import { highlightTransition } from "./Controller.js";
 
 let state = {}
+// shows the labels of all transitions
 export function vizTransitionLabels(transitions){
     state.id_map = new Map();
     let labels = document.getElementById("labels");

@@ -6,16 +6,14 @@ import {vizProperties} from "./properties.js"
 import {loadConsole, readConsole, clearConsole, highlightTransConsole, reloadConsole} from "./console.js"
 import {vizTransitionLabels, highlightTransLabel} from "./labels.js"
 
-
+//the 'state' varaible contains the state of the website
 let state = {}
 state.uncoveredMarkingIDs = new Set()
 state.isPTNet = false;
-loadHelpContent();
 
+//when a file is added, it is read as text and then it is parsed
 document.getElementById("fileUpload").addEventListener("change", function() {
-
     let file = document.getElementById("fileUpload").files[0]
-    
     if (file) {
         let reader = new FileReader();
         let filetype = file.name.split('.').pop(); 
@@ -28,6 +26,7 @@ document.getElementById("fileUpload").addEventListener("change", function() {
     }
 });
 
+// the file is parsed and passed to the analysis
 function tryParsing(text, fileName){
     let filetype = fileName.split('.').pop(); 
     if(!(filetype === "tpn" || filetype === "pnml")){
@@ -45,6 +44,7 @@ function tryParsing(text, fileName){
     analyzeInput(petriNet);
 }
 
+//the file name is shown on the website 
 function updateFileName(fileName){
     let fileNameDisplay = document.getElementById('fileName');
     if(fileName.length > 15){
@@ -53,12 +53,12 @@ function updateFileName(fileName){
     fileNameDisplay.textContent = fileName;
 }
 
+// the petri net is analysed and the results are shown
 export function analyzeInput(petriNet){
     state.petriNet = petriNet;
     let places = petriNet.places;
     let transitions = petriNet.transitions;
     let analysis = new Analysis(petriNet)
-
 
     state.anaResult = analysis.analyse()
     if(state.anaResult.errors.length > 0) alert(state.anaResult.errors.join('\n'));
@@ -72,6 +72,7 @@ export function analyzeInput(petriNet){
     vizTransitionLabels(transitions);
 }
 
+//the petri net visualization is calculated and added to the website
 function loadPetriNet(){
     const svg = vizPetriNet(state.anaResult.components, highlightTransition, state.isPTNet);
     //const svg = vizWFNet(state.anaResult, highlightTransition, state.isPTNet);
@@ -80,6 +81,7 @@ function loadPetriNet(){
     document.getElementById("content").appendChild(svg);
 }
 
+//if a marking in the table us uncovered, it can be shown in the properties section
 export function uncoverMarking(markingID){
     if(!state.uncoveredMarkingIDs.has(markingID)){
         state.uncoveredMarkingIDs.add(markingID)
@@ -87,12 +89,13 @@ export function uncoverMarking(markingID){
     }
 }
 
+//visualized a marking in the petri net
 export function vizMarkingInSVGNet(marking){
     updateTokens(state.petriNet.places, marking.markingArr)
 }
 
 
-
+//highlights a transitions in different sections
 export function highlightTransition(id){
     let prev_id = state.highlighted_trans
     state.highlighted_trans = id
@@ -102,7 +105,7 @@ export function highlightTransition(id){
     highlightTransConsole(id);
 }
 
-
+//divides website into right and left side and enables user to change the sizes of the sections
 function createDivider() {
     const divider = document.createElement('div');
     divider.className = 'divider';
@@ -110,7 +113,6 @@ function createDivider() {
     const container = document.querySelector('.grid-container');
     const firstDiv = container.children[0];
 
-    // Insert the divider
     container.insertBefore(divider, firstDiv.nextSibling);
 
     let isDragging = false;
@@ -138,6 +140,7 @@ function createDivider() {
     }
 };
 
+//enables user to change the size of console and petri net
 function createConsoleDivider(){
     const divider = document.createElement('div');
     divider.className = 'consoleDivider';
@@ -178,6 +181,7 @@ function createConsoleDivider(){
     }
 }
 
+//changes the net type and reloads console of user switches between EC and PT net
 document.getElementById("netType").addEventListener("change", function(){
     readNetType();
     reloadConsole(state.isPTNet);
@@ -192,6 +196,7 @@ function updateNetType(isPTNet){
     document.getElementById("netType").checked = isPTNet;
 }
 
+// the console is read and analysed
 document.getElementById("console_go").onclick = function(){
     analyzeInput(readConsole());
     if(state.highlighted_trans !== undefined){
@@ -203,6 +208,7 @@ document.getElementById("console_clear").onclick = function(){
     clearConsole();
 }
 
+// the console is read, transformed into pnml and downloaded as file
 document.getElementById("console_save").onclick = function(){
 
     let petriNet = readConsole();
@@ -217,37 +223,12 @@ document.getElementById("console_save").onclick = function(){
     a.click();
 }
 
+// opens the help window
+document.getElementById('helpButton').addEventListener('click', function() {
+    window.open('helpContent.html', '_blank');
+});
 
-function loadHelpContent() {
-    fetch('helpContent.html')
-        .then(response => response.text())
-        .then(data => {
-            document.getElementById('helpContentContainer').innerHTML = data;
-            attachPopupEventListeners(); // Attach event listeners after content is loaded
-        })
-        .catch(err => console.error('Failed to load help content:', err));
-}
-
-function attachPopupEventListeners() {
-    var modal = document.getElementById("helpPopup");
-    var btn = document.getElementById("helpButton");
-    var span = document.getElementsByClassName("close")[0];
-
-    btn.onclick = function() {
-        modal.style.display = "block";
-    };
-
-    span.onclick = function() {
-        modal.style.display = "none";
-    };
-
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    };
-}
-
+//the URL given in the 'file' Parameter is loaded
 window.onload = function() {
     createDivider();
     createConsoleDivider();
@@ -266,9 +247,9 @@ window.onload = function() {
     }
 };
 
+// trying to fetch the file from the given URL
 function fetchPetriNetFromURL(levelurl) {
     return new Promise((resolve, reject) => {
-        let encodedURL = encodeURLSegments(levelurl);
         $.ajax({
             type: "GET",
             url: "http://localhost/download.php?url=" + levelurl,
@@ -281,16 +262,4 @@ function fetchPetriNetFromURL(levelurl) {
             tryParsing(res, fileName);
         });
     });
-}
-
-
-function encodeURLSegments(url) {
-    let parts = url.split('/');
-    for (let i = 0; i < parts.length; i++) {
-        // Only encode parts of the URL that can contain spaces or other characters needing encoding
-        if (i > 2) { // Assuming the first three parts are the protocol and domain, which don't need encoding
-            parts[i] = encodeURIComponent(parts[i]);
-        }
-    }
-    return parts.join('/');
 }

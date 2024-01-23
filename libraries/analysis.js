@@ -40,7 +40,7 @@ export class Analysis {
         let errors = [] // Stores all occuring errors
         // Length of the coverability graph
         let cover_depth = this.coverabilityGraph.length;
-        let max_depth = 100; // Maximum depth for exploration
+        let max_depth = 300; // Maximum depth for exploration
         let overflow = false; // Flag to indicate if maximum depth is exceeded
 
         // Processes an unexplored marking 
@@ -119,7 +119,7 @@ export class Analysis {
         }
         //if the limit is exceeded, an error message is added
         if(overflow){
-            errors.push("Warning: Marking limit of 100 exceeded. The resulting " +
+            errors.push("Warning: Marking limit of 300 exceeded. The resulting " +
             "marking table is not complete and the listed properties might not be correct.");
         }
         return [markings, errors];
@@ -264,7 +264,7 @@ export class Analysis {
         // Perform reachability analysis
         let  [markings, newErrors] = this.reachabilityAna(places,transitions);
         if(newErrors.length != 0){
-            this.errors.push("Warning: Marking limit of 100 exceeded in soundness analysis. The resulting " +
+            this.errors.push("Warning: Marking limit of 300 exceeded in soundness analysis. The resulting " +
             "soundness property might not be correct.");
         }
 
