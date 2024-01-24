@@ -1,7 +1,7 @@
 import { parse, unparseToPNML} from "./libraries/parsing.js";
 import { vizPetriNet, updateTokens, highlightTransNode } from "./libraries/visulization.js";
 import { Analysis } from "./libraries/analysis.js"
-import { vizMarkingTable, highlightTransColumn } from "./marking-table.js"
+import { vizMarkingTable } from "./marking-table.js"
 import {vizProperties} from "./properties.js"
 import {loadConsole, readConsole, clearConsole, highlightTransConsole, reloadConsole} from "./console.js"
 import {vizTransitionLabels, highlightTransLabel} from "./labels.js"
@@ -37,7 +37,6 @@ function tryParsing(text, fileName){
     let [petriNet, errorList] = parse(text, filetype, state.isPTNet);
     if(errorList.length > 0) alert(errorList.join('\n'));
     if(!petriNet) return;
-    console.log(petriNet);
     updateFileName(fileName);
     if(!state.isPTNet && petriNet.isPTNet) updateNetType(true);
     loadConsole(petriNet.places, petriNet.transitions, state.isPTNet)
@@ -101,7 +100,6 @@ export function highlightTransition(id){
     state.highlighted_trans = id
     highlightTransNode(id);
     highlightTransLabel(id, prev_id);
-    highlightTransColumn(id, prev_id);
     highlightTransConsole(id);
 }
 

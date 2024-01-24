@@ -259,7 +259,6 @@ class MarkingRow{
 function createTextCell(text, width){
     const cell = document.createElement("td")
     const textWrapDiv = document.createElement("div")
-    console.log(width);
     textWrapDiv.style.width = width + "px";
     const textWrapSpan = document.createElement("p")
     const cellText = document.createTextNode(text)

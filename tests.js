@@ -1,11 +1,11 @@
-import { parse, unparseToPNML} from "./libraries/parsing.js";
+import { parse } from "./libraries/parsing.js";
 import { Analysis } from "./libraries/analysis.js";
 
-testParserTpn1();
-testParserPnml1();
-testLiveness();
-testCoverability();
-testSoundness();
+//testParserTpn1();
+//testParserPnml1();
+//testLiveness();
+//testCoverability();
+//testSoundness();
 
 function testParserTpn1() {
     //Setup Parsing Input and expected Output

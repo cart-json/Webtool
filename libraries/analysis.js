@@ -317,7 +317,6 @@ export class Analysis {
                             this.unsoundMarkings.push(mark);
                     }
                 })
-                console.log(this.unsoundMarkings);
             }
             return false;
         }
