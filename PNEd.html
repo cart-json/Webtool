@@ -7,6 +7,8 @@
         <style>
         </style>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script type="module" src="Controller.js"></script>
+        <script type="module" src="tests.js"></script>
     </head>
     <body>
         <!-- Kommentar -->
@@ -21,35 +23,34 @@
                     <button type="button" id="helpButton">Help</button>
                 </form>
             </div>
-        </div>    
+        </div>
         <div class="grid-container">
-            <div id="NetAndConsole" class="divide1">
-                <div id="content">
-                </div>
+            <div id="NetAndConsole">
+                <div id="content"></div>
                 <div id="console_wrap">
-                    <div id="console_top">  
+                    <div id="console_top">
                         <p>Console</p>
                         <form id="console_buttons">
                             <input id="fileUpload" type="file">
-                            <p>EC-Net</p>
+                            <span>EC-Net&nbsp;</span>
                             <label class="switch">
                                 <input type="checkbox", id="netType">
                                 <span class="slider"></span>
                             </label>
-                            <p>PT-Net</p>
+                            <span>&nbsp;PT-Net&nbsp;</span>
                             <button type="button" id="console_clear">Clear</button>
                             <button type="button" id="console_go">Go!</button>
                         </form>
                     </div>
                     <div id="console_body">
-                        <div id="console_trans_wrap"> 
+                        <div id="console_trans_wrap">
                             <div id="trans_list">
-                            </div> 
+                            </div>
                             <button class="add_trans_button" id="add_trans">add transition</button>
                         </div>
                         <div id="console_places_wrap">
                             <div id="place_list">
-                            </div> 
+                            </div>
                             <button class="add_place_button" id="add_place">add place</button>
                         </div>
                         <div id="console_edges_wrap">
@@ -61,22 +62,21 @@
 
                     </div>
                 </div>
-            </div><div class="divide1">
-                <div id="labelsAndPropsWrap1">
-                    <div id="labelsAndPropsWrap2">
+            </div>
+            <div id="Details">
+                <div id="labelsAndPropsWrap">
+                    <div id="labelsAndPropsWrap2a">
                         <p class="console" id="labels">Labels...</p>
                     </div>
-                    <div id="labelsAndPropsWrap2">
+                    <div id="labelsAndPropsWrap2b">
                         <p class="console" id="props">Properties...</p>
                     </div>
-                </div>  
+                </div>
                 <div id="markingTableWrap">
                     <button id="unhideButton">Unhide all</button>
                     <div id="markingTableContainer" style="display: flex;"></div>
                 </div>
             </div>
         </div>
-        <script type="module" src="Controller.js"></script> 
-        <script type="module" src="tests.js"></script> 
     </body>
 </html>
